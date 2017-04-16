@@ -6,10 +6,10 @@
 # 'jekyll serve'. If you change this file, please restart the server process.
 
 # Site settings
-title: 0x90
+title: "0x90"
 email: noemail4u@example.com
 description: > # this means to ignore newlines until "baseurl:"
-  0x90 Zone (or NoOperation Zone). There is actually nothing to see here.
+  "0x90" Zone (or NoOperation Zone). There is actually nothing to see here.
   This website is for my personal infosec research. Opinions are mine only.
   It's a blog, you can find some articles about what I get in the field.
   Constructive comments are welcome. Have fun, stay safe.

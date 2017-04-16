@@ -45,7 +45,7 @@ The main concern is to encode our path to base64 so it can be decoded when it re
 To test if it can be indeed vulnerable I encoded a common path in my testing machine ("../../../../etc/grub.d/backup/boot_grub/themes/ubuntu-mate/") and finally I got a result.
 
 
-![GettingPartialPathTransversial]({{ site.url }}/assets/images/dirListPathTransversial.png)
+![GettingPartialPathTransversial]({{ site.url }}/images/dirListPathTransversial.png)
 
 This allows an attacker to search for images on the web application and outside of it.
 This is a limited attack but since it's common to see one server hosting several applications it can be usefull in some scenarios. One scenario that I can immagine is if a Scanner is attached or it has a folder where clients drop proof of purchase and the filename is unknown It can be usefull not only to get the filename but the image if it is uploaded as images.

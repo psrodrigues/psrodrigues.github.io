@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>0x90</title>
+    <description>&quot;0x90&quot; Zone (or NoOperation Zone). There is actually nothing to see here. This website is for my personal infosec research. Opinions are mine only. It&#39;s a blog, you can find some articles about what I get in the field. Constructive comments are welcome. Have fun, stay safe.
+</description>
+    <link>http://www.0x90.zone/</link>
+    <atom:link href="http://www.0x90.zone/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Sun, 16 Apr 2017 18:33:55 +0100</pubDate>
+    <lastBuildDate>Sun, 16 Apr 2017 18:33:55 +0100</lastBuildDate>
+    <generator>Jekyll v3.0.1</generator>
+    
+      <item>
+        <title>Morning Post</title>
+        <description>&lt;p&gt;Welcome to 0x90 zone! In here you’ll find my adventures on infosec bussiness. The information in this site is for education porpuses only and should NOT be used to create harm or havok.
+For those who don’t know me I’m a student and currently working on infosec, so i’m always still learning. Sometimes you’ll see some basic stuff (most of time) sometimes you’ll see some freak stuff, it depends.
+I created this site to alert people for some issues in this world so they can protect themselves. Comments are allowed if they are constructive ones, everyone gains with that.
+If you want you can follow me on twitter, usually I retweet articles that I found usefull for a day-to-day work in infosec.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 16 Apr 2017 17:20:51 +0100</pubDate>
+        <link>http://www.0x90.zone/init/2017/04/16/Morning-Post.html</link>
+        <guid isPermaLink="true">http://www.0x90.zone/init/2017/04/16/Morning-Post.html</guid>
+        
+        
+        <category>init</category>
+        
+      </item>
+    
+  </channel>
+</rss>

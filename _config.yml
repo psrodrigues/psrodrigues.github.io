@@ -4,7 +4,7 @@
 # which you are expected to set up once and rarely need to edit after that.
 # For technical reasons, this file is *NOT* reloaded automatically when you use
 # 'jekyll serve'. If you change this file, please restart the server process.
-
+theme: minima
 # Site settings
 title: "0x90"
 email: noemail4u@example.com
@@ -20,3 +20,28 @@ github_username:  psrodrigues
 
 # Build settings
 markdown: kramdown
+highlighter: rouge
+
+gems: [jekyll-paginate,  jekyll-gist]
+
+paginate: 3
+
+logo:             
+disqus_shortname:
+
+owner:
+  name:           Pedro_Sec_R
+  avatar:         ""
+  email:          ""
+  # Social networking links used in footer. Update and remove as you like.
+  twitter:
+  github:
+  stackexchange:
+  # For Google Authorship https://plus.google.com/authorship
+  google_plus:
+
+# Analytics and webmaster tools stuff goes here
+google_analytics:
+google_verify:
+# https://ssl.bing.com/webmaster/configure/verify/ownership Option 2 content= goes here
+bing_verify:

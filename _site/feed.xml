@@ -2,13 +2,148 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>0x90</title>
-    <description>&quot;0x90&quot; Zone (or NoOperation Zone). There is actually nothing to see here. This website is for my personal infosec research. Opinions are mine only. It&#39;s a blog, you can find some articles about what I get in the field. Constructive comments are welcome. Have fun, stay safe.
+    <description>&quot;0x90&quot; Zone (or NoOperation Zone). There is actually nothing to see here. This website is for my personal infosec research. Opinions are mine only. It's a blog, you can find some articles about what I get in the field. Constructive comments are welcome. Have fun, stay safe.
 </description>
-    <link>http://www.0x90.zone/</link>
-    <atom:link href="http://www.0x90.zone/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 16 Apr 2017 18:33:55 +0100</pubDate>
-    <lastBuildDate>Sun, 16 Apr 2017 18:33:55 +0100</lastBuildDate>
-    <generator>Jekyll v3.0.1</generator>
+    <link>http://localhost:4000/</link>
+    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Mon, 10 Jul 2017 13:17:55 +0100</pubDate>
+    <lastBuildDate>Mon, 10 Jul 2017 13:17:55 +0100</lastBuildDate>
+    <generator>Jekyll v3.4.3</generator>
+    
+      <item>
+        <title>How to not implement Security - A tale of Hidden Text</title>
+        <description>&lt;p&gt;Finnaly with some time to write. This time I want to point out a very usual mistake done in Web Applications programming wich is hidding content with JavaScript. Time and time again I see this “Mistake”, on Universities, Shopping sites and on web newspappers.&lt;/p&gt;
+
+&lt;p&gt;Recently I was browsing a news site and suddenly I couldn’t load the whole story since I was using an ad-blocker and since I didn’t pay for a subscription (Obviously). Altough it was a very interesting story and I really wanted to read.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/limitedeArtigos.png&quot; alt=&quot;Reaching Limit of Articles&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;And after the limit is reached we are presented with this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/limiteReached.png&quot; alt=&quot;Limit Reached&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The very first thing that I saw was a subtle fade-out of the text on the story and I started wondering were the hell the text went. Of course, being me the very next thing is to see the source-code and, surprise surprise. There was the rest of the story. Not in a so friendly view but I could finish reading it.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/sourceLimiteReached.png&quot; alt=&quot;Source Code of the Article&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I then check other stories and the same thing happend, the story will be loaded but it will be hidden. Python to the rescue then! I created a litle script that recieves the URL of the story and clean everything to present with the raw text of the story. I could obviously create a document with all the images and stuff but, normally, the images appear on the header of the page and are not hidden (Some exceptions apply).&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-python&quot; data-lang=&quot;python&quot;&gt;&lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;urllib2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nn&quot;&gt;re&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;nn&quot;&gt;sys&lt;/span&gt;
+&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;bs4&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BeautifulSoup&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;#This script will show, in a more user-friendly way, the hidden news in the publico.pt website&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;#Check for news link&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;No News Portal was passed&quot;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;#Execute the request&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;req&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;urllib2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Request&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;response&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;urllib2&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;urlopen&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;req&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;noticia&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;response&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;span class=&quot;c&quot;&gt;#Parse the data to be more user-friendly&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;soup&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;BeautifulSoup&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;noticia&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'html.parser'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;story&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;soup&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;find&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;story-body&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;entry&lt;/span&gt; &lt;span class=&quot;ow&quot;&gt;in&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;story&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;find_all&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'p'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;prep&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;entry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;stripExtra&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;re&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sub&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;r&quot;&amp;lt;[a-zA-Z/]*&amp;gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;r&quot;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;prep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;stripExtra&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/pythonInAction.png&quot; alt=&quot;Article from the Script&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;To summarize, if you are building a web portal. Check permissions first hand and don’t just hide information. A simple mitigation for this issue is to, when clicking on the button to read the whole story an AJAX request is made to the server where is going to check the login information. This will help the changes not be so abrupt to the application.
+Also, this is just an example of what could happen I don’t endorse this method and if you really want to read some the news on this or another paid website, you should contribuite to that newspapper so they can keep doing their good job.&lt;/p&gt;
+
+</description>
+        <pubDate>Mon, 10 Jul 2017 00:00:00 +0100</pubDate>
+        <link>http://localhost:4000/javascript/2017/07/10/How-To-Not-Implement-Security.html</link>
+        <guid isPermaLink="true">http://localhost:4000/javascript/2017/07/10/How-To-Not-Implement-Security.html</guid>
+        
+        
+        <category>JavaScript</category>
+        
+      </item>
+    
+      <item>
+        <title>DirList PHP Partial Path Transversion (PNG/JPG and MP3 Files)</title>
+        <description>&lt;p&gt;When I was auditing a website I came across a directory List using a well-known code, DirList. This code supplies the client to a directory list of files and allow for management with a nice interface without having to remotly login in the web server.
+I quickly check for exploits and, at this date, there was two &lt;a href=&quot;https://www.exploit-db.com/exploits/41083/&quot;&gt;Arbitrary File Upload&lt;/a&gt; and &lt;a href=&quot;https://www.exploit-db.com/exploits/37617/&quot;&gt;Local File Inclusion&lt;/a&gt;. However these exploit were already patched. So I download a copy for myself and start thinkering to see if someone forgot something.&lt;/p&gt;
+
+&lt;p&gt;When I check the exploits both were mitigated, however there was a piece of code that caught my eye.
+In the “Media” files the flawed code was present.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;$folder = '../'.$dir_to_browse.base64_decode($_GET['folder']);
+
+if(!is_dir($folder)) die(&quot;&lt;span class=&quot;nt&quot;&gt;&amp;lt;b&amp;gt;&lt;/span&gt;Error:&lt;span class=&quot;nt&quot;&gt;&amp;lt;/b&amp;gt;&lt;/span&gt; Folder specified does not exist. This could be because you manually entered the folder name in the URL or you don't have permission to access this folder&quot;);
+
+$content = get_dir_content($folder);
+
+foreach($content['files']['name'] as $key =&amp;gt; $val)
+{
+	if(in_array(strtolower(strrchr($val, '.')), array('.jpg', '.jpeg', '.png', '.gif')))
+	{
+		$path = $folder.'/'.$val;
+		$images_paths[] = $path;
+
+		@$js_images_names .= '\''.$val.'\', ';
+		@$js_images_file_sizes .= '\''.letter_size(filesize($path)).'\', ';
+
+		$dimensions = getimagesize($path);
+		$images_widths[] = $dimensions[0];
+		$images_heights[] = $dimensions[1];
+
+		@$js_images_heights .= '\''.$dimensions[1].'\', ';
+		@$js_images_widths .= '\''.$dimensions[0].'\', ';
+		@$js_images_download_link .= '\''.base64_encode($dir_to_browse.base64_decode($_GET['folder']).'/'.$val).'\', ';
+	}
+}&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can notice on this piece of code that the GET parameter is passed to the “$folder” variable without being verified for illegal characters. This allows someone to choose an arbitrary location.
+However in the foreach cycle it checks the file extension for images, since this is a media gallery.
+The main concern is to encode our path to base64 so it can be decoded when it reaches to the attribuition to the “$folder” variable.&lt;/p&gt;
+
+&lt;p&gt;To test if it can be indeed vulnerable I encoded a common path in my testing machine (“../../../../etc/grub.d/backup/boot_grub/themes/ubuntu-mate/”) and finally I got a result.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/dirListPathTransversial.png&quot; alt=&quot;GettingPartialPathTransversial&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This allows an attacker to search for images on the web application and outside of it.
+This is a limited attack but since it’s common to see one server hosting several applications it can be usefull in some scenarios. One scenario that I can immagine is if a Scanner is attached or it has a folder where clients drop proof of purchase and the filename is unknown It can be usefull not only to get the filename but the image if it is uploaded as images.&lt;/p&gt;
+
+&lt;p&gt;A similar vulnerability is present in “media_player_files/generate_playlist.php”. This file will generate a playlist of mp3 files but it suffers from the same vulnerability as the previous one, but insted of images its “.mp3” files.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-php&quot; data-lang=&quot;php&quot;&gt;$folder = '../../'.$dir_to_browse.base64_decode($_GET['folder']);
+$dir_content = get_dir_content($folder);
+$mp3s = array();
+
+//filter out to keep only mp3 files
+foreach($dir_content['files']['name'] as $val)
+	if(strtolower(strrchr($val, '.')) == '.mp3')
+		$mp3s[] = $val;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Mitigation: Normally sysadmins deploy these files but don’t actually need them. One option is not to deploy them. The other one is to parse the input to a list of known available directories so they can be listed or filter the input to decode the base64 and prevent illegal chars (illegal such as .. and . aswell as others).&lt;/p&gt;
+
+&lt;p&gt;Probably there could be even more problems but I haven’t look at it. I encourage everyone to test them.&lt;/p&gt;
+</description>
+        <pubDate>Sun, 16 Apr 2017 19:00:00 +0100</pubDate>
+        <link>http://localhost:4000/web/php/path_transversion/2017/04/16/DirList-Gallery.html</link>
+        <guid isPermaLink="true">http://localhost:4000/web/php/path_transversion/2017/04/16/DirList-Gallery.html</guid>
+        
+        
+        <category>Web</category>
+        
+        <category>PHP</category>
+        
+        <category>Path_Transversion</category>
+        
+      </item>
     
       <item>
         <title>Morning Post</title>
@@ -18,8 +153,8 @@ I created this site to alert people for some issues in this world so they can pr
 If you want you can follow me on twitter, usually I retweet articles that I found usefull for a day-to-day work in infosec.&lt;/p&gt;
 </description>
         <pubDate>Sun, 16 Apr 2017 17:20:51 +0100</pubDate>
-        <link>http://www.0x90.zone/init/2017/04/16/Morning-Post.html</link>
-        <guid isPermaLink="true">http://www.0x90.zone/init/2017/04/16/Morning-Post.html</guid>
+        <link>http://localhost:4000/init/2017/04/16/Morning-Post.html</link>
+        <guid isPermaLink="true">http://localhost:4000/init/2017/04/16/Morning-Post.html</guid>
         
         
         <category>init</category>

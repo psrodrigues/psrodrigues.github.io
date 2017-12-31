@@ -25,7 +25,6 @@ In some environments with federal authentication (or similar) where the login is
 Now with that in mind lets begin with our scenario. We have two Web sites the official site (at 192.168.155.114)and the attackers website (at 192.168.155.133). The official site is a site where a user has to login to make a transaction. For sake of brevity the official website has a predefined login with the username being “victim” and the password “pass”, by requesting the transaction a session variable is stored and saved not allowing any more submissions. Please disregard the other vulnerabilities on the site like the username and password being submitted via GET request we are not focusing on that right now. Here is the code for the official WebSite:
 
 {%highlight php %}
-<?php
 session_start();
 
 if(!isset($_SESSION['logedin'])){
@@ -76,13 +75,12 @@ if (isset($_SESSION['logedin']) && $_SESSION['logedin']==true)
 
     }
 }
-?>
-
+#DONT FORGET THE PHP TAGS!
 
 {% endhighlight %}
 
 The attackers website is the one that, once visited, makes the cross site request and triggers the transaction. It’s just simple as that, just visit the website and before you know it, the attack has already been done. And here is the code for the attackers site:
-<insert code here>
+
 {%highlight html %}
 <body>
 <h1> ATACCKERS </h1>
@@ -95,11 +93,14 @@ The attack procedes as follows, the victim accesses the website and logins in it
 
 ![Official Website]({{ site.url }}/images/csrf/official_login.PNG)
 
+As we see in the next image, there are no transaction done.
 
 ![After the login]({{ site.url }}/images/csrf/victim_transactions.PNG)
 
 By visiting the attacker website and triggering the attack we go back then to the official site and see a transaction that we haven’t done knowingly. 
 ![Attack]({{ site.url }}/images/csrf/attack.PNG)
+
+When we refresh the official page we now see the transaction that has been made.
 
 ![Attack Done]({{ site.url }}/images/csrf/attack_done.PNG)
 
@@ -110,8 +111,9 @@ One thing that you should have in mind is that browsers nowadays are more “int
 
 To detect this attack on you website you could simple check for external HTTP Referer on the logs for your API. If a website that you know is used for this attack or suspect its being used it will show as a different Referer.
 
-To fully mitigate this issue we should employ CSRF_TOKEN verification in all forms that will trigger some action in the database. Solutions build in django, for instance, already required to add the token by default in every form, for Apache lovers we can use mod_csrf (http://mod-csrf.sourceforge.net/) or in code (https://www.owasp.org/index.php/PHP_CSRF_Guard). Ultimately the web developer should use this by default while developing the Web Application. Since the attacker can’t have the token easely he can’t submit the form. 
-References: https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)
+To fully mitigate this issue we should employ CSRF_TOKEN verification in all forms that will trigger some action in the database. Solutions build in django, for instance, already required to add the token by default in every form, for Apache lovers we can use mod_csrf (<a href="http://mod-csrf.sourceforge.net/">mod_csrf</a>) or in code (<a href="https://www.owasp.org/index.php/PHP_CSRF_Guard">PHP_CSRF_GUARD</a>). Ultimately the web developer should use this by default while developing the Web Application. Since the attacker can’t have the token easely he can’t submit the form. 
+
+References: <a href="https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)">OWASP CSRF </a>
 
 Happy New Year for everyone!
 

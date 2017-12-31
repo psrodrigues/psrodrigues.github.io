@@ -10,8 +10,8 @@
   <meta name="description" content="A lot of requendations about security are “don’t browse sites that you don’t know”. People can ask why is that. How visiting a website that i don’t fully tru...">
 
   <link rel="stylesheet" href="/css/main.css">
-  <link rel="canonical" href="http://www.0x90.zone/websecurity/2017/07/10/CSRFandCOORS.html">
-  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://www.0x90.zone/feed.xml">
+  <link rel="canonical" href="http://localhost:4000/websecurity/2017/07/10/CSRFandCOORS.html">
+  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://localhost:4000/feed.xml">
 </head>
 
 
@@ -80,61 +80,59 @@ The victim should be already logged in</p>
 
 <p>Now with that in mind lets begin with our scenario. We have two Web sites the official site (at 192.168.155.114)and the attackers website (at 192.168.155.133). The official site is a site where a user has to login to make a transaction. For sake of brevity the official website has a predefined login with the username being “victim” and the password “pass”, by requesting the transaction a session variable is stored and saved not allowing any more submissions. Please disregard the other vulnerabilities on the site like the username and password being submitted via GET request we are not focusing on that right now. Here is the code for the official WebSite:</p>
 
-<figure class="highlight"><pre><code class="language-php" data-lang="php"><span class="cp">&lt;?php</span>
-<span class="nb">session_start</span><span class="p">();</span>
+<figure class="highlight"><pre><code class="language-php" data-lang="php">session_start();
 
-<span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'logedin'</span><span class="p">])){</span>
+if(!isset($_SESSION['logedin'])){
 
-    <span class="k">if</span><span class="p">(</span> <span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s2">"username"</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="nb">isset</span><span class="p">(</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s2">"password"</span><span class="p">])){</span>
-        <span class="k">if</span><span class="p">(</span> <span class="nv">$_GET</span><span class="p">[</span><span class="s2">"username"</span><span class="p">]</span><span class="o">===</span><span class="s1">'victim'</span> <span class="o">&amp;&amp;</span>  <span class="nv">$_GET</span><span class="p">[</span><span class="s2">"password"</span><span class="p">]</span><span class="o">===</span><span class="s1">'pass'</span><span class="p">){</span>
-            <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'logedin'</span><span class="p">]</span><span class="o">=</span><span class="kc">true</span><span class="p">;</span>
+    if( isset($_GET["username"]) <span class="err">&amp;&amp;</span> isset( $_GET["password"])){
+        if( $_GET["username"]==='victim' <span class="err">&amp;&amp;</span>  $_GET["password"]==='pass'){
+            $_SESSION['logedin']=true;
 
-        <span class="p">}</span>
+        }
 
-    <span class="p">}</span><span class="k">else</span><span class="p">{</span>
-        <span class="k">echo</span> <span class="s1">'&lt;form action="/bankpage/index.php"&gt;
-	  Username:&lt;br&gt;
-	  &lt;input type="text" name="username"&gt;&lt;br&gt;
-	  Last name:&lt;br&gt;
-		  &lt;input type="password" name="password"&gt;
-	&lt;input type="submit"&gt;
-		&lt;/form&gt;
-			'</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">}</span>
+    }else{
+        echo '<span class="nt">&lt;form</span> <span class="na">action=</span><span class="s">"/bankpage/index.php"</span><span class="nt">&gt;</span>
+	  Username:<span class="nt">&lt;br&gt;</span>
+	  <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"text"</span> <span class="na">name=</span><span class="s">"username"</span><span class="nt">&gt;&lt;br&gt;</span>
+	  Last name:<span class="nt">&lt;br&gt;</span>
+		  <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"password"</span> <span class="na">name=</span><span class="s">"password"</span><span class="nt">&gt;</span>
+	<span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"submit"</span><span class="nt">&gt;</span>
+		<span class="nt">&lt;/form&gt;</span>
+			';
+    }
+}
 
-<span class="k">if</span> <span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'logedin'</span><span class="p">])</span> <span class="o">&amp;&amp;</span> <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'logedin'</span><span class="p">]</span><span class="o">==</span><span class="kc">true</span><span class="p">)</span>
-<span class="p">{</span>
-    <span class="k">if</span><span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'transactions'</span><span class="p">])){</span>
-        <span class="k">echo</span> <span class="s1">'Transaction
-		&lt;br&gt;'</span><span class="p">;</span>
-        <span class="k">echo</span> <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'transactions'</span><span class="p">];</span>
+if (isset($_SESSION['logedin']) <span class="err">&amp;&amp;</span> $_SESSION['logedin']==true)
+{
+    if(isset($_SESSION['transactions'])){
+        echo 'Transaction
+		<span class="nt">&lt;br&gt;</span>';
+        echo $_SESSION['transactions'];
 
-    <span class="p">}</span><span class="k">else</span><span class="p">{</span>
-        <span class="k">if</span><span class="p">(</span><span class="nb">isset</span><span class="p">(</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'transaction_number'</span><span class="p">])){</span>
-            <span class="nv">$_SESSION</span><span class="p">[</span><span class="s1">'transactions'</span><span class="p">]</span><span class="o">=</span><span class="s1">'Transaction Made='</span><span class="o">.</span><span class="nv">$_GET</span><span class="p">[</span><span class="s1">'transaction_number'</span><span class="p">];</span>
-            <span class="nb">header</span><span class="p">(</span><span class="s2">"Refresh:0"</span><span class="p">);</span>
-        <span class="p">}</span>
+    }else{
+        if(isset($_GET['transaction_number'])){
+            $_SESSION['transactions']='Transaction Made='.$_GET['transaction_number'];
+            header("Refresh:0");
+        }
 
-        <span class="k">else</span><span class="p">{</span>
-            <span class="k">echo</span> <span class="s1">'No transactions have been made'</span><span class="p">;</span>
+        else{
+            echo 'No transactions have been made';
 
 
-            <span class="c1">//Make transaction
-</span>            <span class="k">echo</span> <span class="s1">'
-	&lt;form action="/bankpage/index.php"&gt;
-	&lt;input type="text" name="transaction_number" /&gt;
-	&lt;input type="Submit" value="Submit" /&gt;
-	&lt;/form&gt;
-	'</span><span class="p">;</span>
-        <span class="p">}</span>
+            //Make transaction
+            echo '
+	<span class="nt">&lt;form</span> <span class="na">action=</span><span class="s">"/bankpage/index.php"</span><span class="nt">&gt;</span>
+	<span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"text"</span> <span class="na">name=</span><span class="s">"transaction_number"</span> <span class="nt">/&gt;</span>
+	<span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"Submit"</span> <span class="na">value=</span><span class="s">"Submit"</span> <span class="nt">/&gt;</span>
+	<span class="nt">&lt;/form&gt;</span>
+	';
+        }
 
-    <span class="p">}</span>
-<span class="p">}</span>
-<span class="cp">?&gt;</span></code></pre></figure>
+    }
+}
+#DONT FORGET THE PHP TAGS!</code></pre></figure>
 
 <p>The attackers website is the one that, once visited, makes the cross site request and triggers the transaction. It’s just simple as that, just visit the website and before you know it, the attack has already been done. And here is the code for the attackers site:</p>
-<insert code="" here="">
 
 <figure class="highlight"><pre><code class="language-html" data-lang="html"><span class="nt">&lt;body&gt;</span>
 <span class="nt">&lt;h1&gt;</span> ATACCKERS <span class="nt">&lt;/h1&gt;</span>
@@ -142,33 +140,32 @@ The victim should be already logged in</p>
 <span class="nt">&lt;img</span> <span class="na">src=</span><span class="s">"http://192.168.155.114/bankpage/index.php?transaction_number=1337"</span> <span class="na">width=</span><span class="s">"0"</span> <span class="na">height=</span><span class="s">"0"</span> <span class="na">border=</span><span class="s">"0"</span><span class="nt">&gt;</span>
 <span class="nt">&lt;/body&gt;</span></code></pre></figure>
 
+<p>The attack procedes as follows, the victim accesses the website and logins in it.</p>
 
-The attack procedes as follows, the victim accesses the website and logins in it.
+<p><img src="http://localhost:4000/images/csrf/official_login.PNG" alt="Official Website" /></p>
 
-![Official Website](http://www.0x90.zone/images/csrf/official_login.PNG)
+<p>As we see in the next image, there are no transaction done.</p>
 
+<p><img src="http://localhost:4000/images/csrf/victim_transactions.PNG" alt="After the login" /></p>
 
-![After the login](http://www.0x90.zone/images/csrf/victim_transactions.PNG)
+<p>By visiting the attacker website and triggering the attack we go back then to the official site and see a transaction that we haven’t done knowingly. 
+<img src="http://localhost:4000/images/csrf/attack.PNG" alt="Attack" /></p>
 
-By visiting the attacker website and triggering the attack we go back then to the official site and see a transaction that we haven’t done knowingly. 
-![Attack](http://www.0x90.zone/images/csrf/attack.PNG)
+<p>When we refresh the official page we now see the transaction that has been made.</p>
 
-![Attack Done](http://www.0x90.zone/images/csrf/attack_done.PNG)
+<p><img src="http://localhost:4000/images/csrf/attack_done.PNG" alt="Attack Done" /></p>
 
+<p>Now for the fun part. There are a lot of ways to do this easily. The first one is by creating and img tag and point the source for the address to attack. If we need a POST request we can create a form with it and when the page is loaded it triggers the event and submit the form.
+One thing that you should have in mind is that browsers nowadays are more “intelligent” than a few years back and when submitting and AJAX request it will be blocked. The reason for this is CORS (Cross Origin Resource Sharing). This HTTP header tries to block requests to other sites that don-t specially specifies the origin host. Some sites provide an external API where the website makes requests to and that API should implement CORS for modern browsers to work. This isn’t valid for some HTML tags since almost everyone uses, for images at least, external resources.</p>
 
+<p>To detect this attack on you website you could simple check for external HTTP Referer on the logs for your API. If a website that you know is used for this attack or suspect its being used it will show as a different Referer.</p>
 
-Now for the fun part. There are a lot of ways to do this easily. The first one is by creating and img tag and point the source for the address to attack. If we need a POST request we can create a form with it and when the page is loaded it triggers the event and submit the form.
-One thing that you should have in mind is that browsers nowadays are more “intelligent” than a few years back and when submitting and AJAX request it will be blocked. The reason for this is CORS (Cross Origin Resource Sharing). This HTTP header tries to block requests to other sites that don-t specially specifies the origin host. Some sites provide an external API where the website makes requests to and that API should implement CORS for modern browsers to work. This isn’t valid for some HTML tags since almost everyone uses, for images at least, external resources.
+<p>To fully mitigate this issue we should employ CSRF_TOKEN verification in all forms that will trigger some action in the database. Solutions build in django, for instance, already required to add the token by default in every form, for Apache lovers we can use mod_csrf (<a href="http://mod-csrf.sourceforge.net/">mod_csrf</a>) or in code (<a href="https://www.owasp.org/index.php/PHP_CSRF_Guard">PHP_CSRF_GUARD</a>). Ultimately the web developer should use this by default while developing the Web Application. Since the attacker can’t have the token easely he can’t submit the form.</p>
 
-To detect this attack on you website you could simple check for external HTTP Referer on the logs for your API. If a website that you know is used for this attack or suspect its being used it will show as a different Referer.
+<p>References: <a href="https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)">OWASP CSRF </a></p>
 
-To fully mitigate this issue we should employ CSRF_TOKEN verification in all forms that will trigger some action in the database. Solutions build in django, for instance, already required to add the token by default in every form, for Apache lovers we can use mod_csrf (http://mod-csrf.sourceforge.net/) or in code (https://www.owasp.org/index.php/PHP_CSRF_Guard). Ultimately the web developer should use this by default while developing the Web Application. Since the attacker can’t have the token easely he can’t submit the form. 
-References: https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)
+<p>Happy New Year for everyone!</p>
 
-Happy New Year for everyone!
-
-
-</insert>
 
   </div>
 

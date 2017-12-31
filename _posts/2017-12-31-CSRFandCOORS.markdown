@@ -24,9 +24,9 @@ In some environments with federal authentication (or similar) where the login is
 
 Now with that in mind lets begin with our scenario. We have two Web sites the official site (at 192.168.155.114)and the attackers website (at 192.168.155.133). The official site is a site where a user has to login to make a transaction. For sake of brevity the official website has a predefined login with the username being “victim” and the password “pass”, by requesting the transaction a session variable is stored and saved not allowing any more submissions. Please disregard the other vulnerabilities on the site like the username and password being submitted via GET request we are not focusing on that right now. Here is the code for the official WebSite:
 
-<insert code here>
 {%highlight php %}
-ession_start();
+<?php
+session_start();
 
 if(!isset($_SESSION['logedin'])){
 

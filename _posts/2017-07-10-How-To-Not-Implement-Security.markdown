@@ -9,6 +9,10 @@ Finnaly with some time to write. This time I want to point out a very usual mist
 Recently I was browsing a news site and suddenly I couldn't load the whole story since I was using an ad-blocker and since I didn't pay for a subscription (Obviously). Altough it was a very interesting story and I really wanted to read.
 
 ![Reaching Limit of Articles]({{ site.url }}/images/publicoStory/limitedeArtigos.png)
+
+
+And after the limit is reached we are presented with this:
+
 ![Limit Reached]({{ site.url }}/images/publicoStory/limiteReached.png)
 
 

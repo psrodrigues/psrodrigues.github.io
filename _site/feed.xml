@@ -4,10 +4,10 @@
     <title>0x90</title>
     <description>&quot;0x90&quot; Zone (or NoOperation Zone). There is actually nothing to see here. This website is for my personal infosec research. Opinions are mine only. It's a blog, you can find some articles about what I get in the field. Constructive comments are welcome. Have fun, stay safe.
 </description>
-    <link>http://localhost:4000/</link>
-    <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 31 Dec 2017 18:39:25 +0000</pubDate>
-    <lastBuildDate>Sun, 31 Dec 2017 18:39:25 +0000</lastBuildDate>
+    <link>http://www.0x90.zone/</link>
+    <atom:link href="http://www.0x90.zone/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Sun, 31 Dec 2017 18:50:37 +0000</pubDate>
+    <lastBuildDate>Sun, 31 Dec 2017 18:50:37 +0000</lastBuildDate>
     <generator>Jekyll v3.4.3</generator>
     
       <item>
@@ -92,18 +92,18 @@ if (isset($_SESSION['logedin']) &lt;span class=&quot;err&quot;&gt;&amp;amp;&amp;
 
 &lt;p&gt;The attack procedes as follows, the victim accesses the website and logins in it.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/csrf/official_login.PNG&quot; alt=&quot;Official Website&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/csrf/official_login.PNG&quot; alt=&quot;Official Website&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;As we see in the next image, there are no transaction done.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/csrf/victim_transactions.PNG&quot; alt=&quot;After the login&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/csrf/victim_transactions.PNG&quot; alt=&quot;After the login&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;By visiting the attacker website and triggering the attack we go back then to the official site and see a transaction that we haven’t done knowingly. 
-&lt;img src=&quot;http://localhost:4000/images/csrf/attack.PNG&quot; alt=&quot;Attack&quot; /&gt;&lt;/p&gt;
+&lt;img src=&quot;http://www.0x90.zone/images/csrf/attack.PNG&quot; alt=&quot;Attack&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;When we refresh the official page we now see the transaction that has been made.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/csrf/attack_done.PNG&quot; alt=&quot;Attack Done&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/csrf/attack_done.PNG&quot; alt=&quot;Attack Done&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;Now for the fun part. There are a lot of ways to do this easily. The first one is by creating and img tag and point the source for the address to attack. If we need a POST request we can create a form with it and when the page is loaded it triggers the event and submit the form.
 One thing that you should have in mind is that browsers nowadays are more “intelligent” than a few years back and when submitting and AJAX request it will be blocked. The reason for this is CORS (Cross Origin Resource Sharing). This HTTP header tries to block requests to other sites that don-t specially specifies the origin host. Some sites provide an external API where the website makes requests to and that API should implement CORS for modern browsers to work. This isn’t valid for some HTML tags since almost everyone uses, for images at least, external resources.&lt;/p&gt;
@@ -117,9 +117,9 @@ One thing that you should have in mind is that browsers nowadays are more “int
 &lt;p&gt;Happy New Year for everyone!&lt;/p&gt;
 
 </description>
-        <pubDate>Mon, 10 Jul 2017 00:00:00 +0100</pubDate>
-        <link>http://localhost:4000/websecurity/2017/07/10/CSRFandCOORS.html</link>
-        <guid isPermaLink="true">http://localhost:4000/websecurity/2017/07/10/CSRFandCOORS.html</guid>
+        <pubDate>Mon, 11 Dec 2017 23:00:00 +0000</pubDate>
+        <link>http://www.0x90.zone/websecurity/2017/12/11/CSRFandCOORS.html</link>
+        <guid isPermaLink="true">http://www.0x90.zone/websecurity/2017/12/11/CSRFandCOORS.html</guid>
         
         
         <category>WebSecurity</category>
@@ -132,15 +132,15 @@ One thing that you should have in mind is that browsers nowadays are more “int
 
 &lt;p&gt;Recently I was browsing a news site and suddenly I couldn’t load the whole story since I was using an ad-blocker and since I didn’t pay for a subscription (Obviously). Altough it was a very interesting story and I really wanted to read.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/limitedeArtigos.png&quot; alt=&quot;Reaching Limit of Articles&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/publicoStory/limitedeArtigos.png&quot; alt=&quot;Reaching Limit of Articles&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;And after the limit is reached we are presented with this:&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/limiteReached.png&quot; alt=&quot;Limit Reached&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/publicoStory/limiteReached.png&quot; alt=&quot;Limit Reached&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;The very first thing that I saw was a subtle fade-out of the text on the story and I started wondering were the hell the text went. Of course, being me the very next thing is to see the source-code and, surprise surprise. There was the rest of the story. Not in a so friendly view but I could finish reading it.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/sourceLimiteReached.png&quot; alt=&quot;Source Code of the Article&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/publicoStory/sourceLimiteReached.png&quot; alt=&quot;Source Code of the Article&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;I then check other stories and the same thing happend, the story will be loaded but it will be hidden. Python to the rescue then! I created a litle script that recieves the URL of the story and clean everything to present with the raw text of the story. I could obviously create a document with all the images and stuff but, normally, the images appear on the header of the page and are not hidden (Some exceptions apply).&lt;/p&gt;
 
@@ -173,15 +173,15 @@ One thing that you should have in mind is that browsers nowadays are more “int
 
 &lt;span class=&quot;n&quot;&gt;sys&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;exit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/publicoStory/pythonInAction.png&quot; alt=&quot;Article from the Script&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/publicoStory/pythonInAction.png&quot; alt=&quot;Article from the Script&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;To summarize, if you are building a web portal. Check permissions first hand and don’t just hide information. A simple mitigation for this issue is to, when clicking on the button to read the whole story an AJAX request is made to the server where is going to check the login information. This will help the changes not be so abrupt to the application.
 Also, this is just an example of what could happen I don’t endorse this method and if you really want to read some the news on this or another paid website, you should contribuite to that newspapper so they can keep doing their good job.&lt;/p&gt;
 
 </description>
         <pubDate>Mon, 10 Jul 2017 00:00:00 +0100</pubDate>
-        <link>http://localhost:4000/javascript/2017/07/10/How-To-Not-Implement-Security.html</link>
-        <guid isPermaLink="true">http://localhost:4000/javascript/2017/07/10/How-To-Not-Implement-Security.html</guid>
+        <link>http://www.0x90.zone/javascript/2017/07/10/How-To-Not-Implement-Security.html</link>
+        <guid isPermaLink="true">http://www.0x90.zone/javascript/2017/07/10/How-To-Not-Implement-Security.html</guid>
         
         
         <category>JavaScript</category>
@@ -228,7 +228,7 @@ The main concern is to encode our path to base64 so it can be decoded when it re
 
 &lt;p&gt;To test if it can be indeed vulnerable I encoded a common path in my testing machine (“../../../../etc/grub.d/backup/boot_grub/themes/ubuntu-mate/”) and finally I got a result.&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;http://localhost:4000/images/dirListPathTransversial.png&quot; alt=&quot;GettingPartialPathTransversial&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;http://www.0x90.zone/images/dirListPathTransversial.png&quot; alt=&quot;GettingPartialPathTransversial&quot; /&gt;&lt;/p&gt;
 
 &lt;p&gt;This allows an attacker to search for images on the web application and outside of it.
 This is a limited attack but since it’s common to see one server hosting several applications it can be usefull in some scenarios. One scenario that I can immagine is if a Scanner is attached or it has a folder where clients drop proof of purchase and the filename is unknown It can be usefull not only to get the filename but the image if it is uploaded as images.&lt;/p&gt;
@@ -249,8 +249,8 @@ foreach($dir_content['files']['name'] as $val)
 &lt;p&gt;Probably there could be even more problems but I haven’t look at it. I encourage everyone to test them.&lt;/p&gt;
 </description>
         <pubDate>Sun, 16 Apr 2017 19:00:00 +0100</pubDate>
-        <link>http://localhost:4000/web/php/path_transversion/2017/04/16/DirList-Gallery.html</link>
-        <guid isPermaLink="true">http://localhost:4000/web/php/path_transversion/2017/04/16/DirList-Gallery.html</guid>
+        <link>http://www.0x90.zone/web/php/path_transversion/2017/04/16/DirList-Gallery.html</link>
+        <guid isPermaLink="true">http://www.0x90.zone/web/php/path_transversion/2017/04/16/DirList-Gallery.html</guid>
         
         
         <category>Web</category>
@@ -269,8 +269,8 @@ I created this site to alert people for some issues in this world so they can pr
 If you want you can follow me on twitter, usually I retweet articles that I found usefull for a day-to-day work in infosec.&lt;/p&gt;
 </description>
         <pubDate>Sun, 16 Apr 2017 17:20:51 +0100</pubDate>
-        <link>http://localhost:4000/init/2017/04/16/Morning-Post.html</link>
-        <guid isPermaLink="true">http://localhost:4000/init/2017/04/16/Morning-Post.html</guid>
+        <link>http://www.0x90.zone/init/2017/04/16/Morning-Post.html</link>
+        <guid isPermaLink="true">http://www.0x90.zone/init/2017/04/16/Morning-Post.html</guid>
         
         
         <category>init</category>

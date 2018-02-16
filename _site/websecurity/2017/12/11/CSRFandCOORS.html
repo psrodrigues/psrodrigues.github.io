@@ -10,8 +10,8 @@
   <meta name="description" content="A lot of requendations about security are “don’t browse sites that you don’t know”. People can ask why is that. How visiting a website that i don’t fully tru...">
 
   <link rel="stylesheet" href="/css/main.css">
-  <link rel="canonical" href="http://www.0x90.zone/websecurity/2017/12/11/CSRFandCOORS.html">
-  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://www.0x90.zone/feed.xml">
+  <link rel="canonical" href="http://localhost:4000/websecurity/2017/12/11/CSRFandCOORS.html">
+  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://localhost:4000/feed.xml">
 </head>
 
 
@@ -142,18 +142,18 @@ if (isset($_SESSION['logedin']) <span class="err">&amp;&amp;</span> $_SESSION['l
 
 <p>The attack procedes as follows, the victim accesses the website and logins in it.</p>
 
-<p><img src="http://www.0x90.zone/images/csrf/official_login.PNG" alt="Official Website" /></p>
+<p><img src="http://localhost:4000/images/csrf/official_login.PNG" alt="Official Website" /></p>
 
 <p>As we see in the next image, there are no transaction done.</p>
 
-<p><img src="http://www.0x90.zone/images/csrf/victim_transactions.PNG" alt="After the login" /></p>
+<p><img src="http://localhost:4000/images/csrf/victim_transactions.PNG" alt="After the login" /></p>
 
 <p>By visiting the attacker website and triggering the attack we go back then to the official site and see a transaction that we haven’t done knowingly. 
-<img src="http://www.0x90.zone/images/csrf/attack.PNG" alt="Attack" /></p>
+<img src="http://localhost:4000/images/csrf/attack.PNG" alt="Attack" /></p>
 
 <p>When we refresh the official page we now see the transaction that has been made.</p>
 
-<p><img src="http://www.0x90.zone/images/csrf/attack_done.PNG" alt="Attack Done" /></p>
+<p><img src="http://localhost:4000/images/csrf/attack_done.PNG" alt="Attack Done" /></p>
 
 <p>Now for the fun part. There are a lot of ways to do this easily. The first one is by creating and img tag and point the source for the address to attack. If we need a POST request we can create a form with it and when the page is loaded it triggers the event and submit the form.
 One thing that you should have in mind is that browsers nowadays are more “intelligent” than a few years back and when submitting and AJAX request it will be blocked. The reason for this is CORS (Cross Origin Resource Sharing). This HTTP header tries to block requests to other sites that don-t specially specifies the origin host. Some sites provide an external API where the website makes requests to and that API should implement CORS for modern browsers to work. This isn’t valid for some HTML tags since almost everyone uses, for images at least, external resources.</p>

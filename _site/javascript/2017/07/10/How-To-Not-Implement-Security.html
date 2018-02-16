@@ -10,8 +10,8 @@
   <meta name="description" content="Finnaly with some time to write. This time I want to point out a very usual mistake done in Web Applications programming wich is hidding content with JavaScr...">
 
   <link rel="stylesheet" href="/css/main.css">
-  <link rel="canonical" href="http://www.0x90.zone/javascript/2017/07/10/How-To-Not-Implement-Security.html">
-  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://www.0x90.zone/feed.xml">
+  <link rel="canonical" href="http://localhost:4000/javascript/2017/07/10/How-To-Not-Implement-Security.html">
+  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://localhost:4000/feed.xml">
 </head>
 
 
@@ -66,15 +66,15 @@
 
 <p>Recently I was browsing a news site and suddenly I couldn’t load the whole story since I was using an ad-blocker and since I didn’t pay for a subscription (Obviously). Altough it was a very interesting story and I really wanted to read.</p>
 
-<p><img src="http://www.0x90.zone/images/publicoStory/limitedeArtigos.png" alt="Reaching Limit of Articles" /></p>
+<p><img src="http://localhost:4000/images/publicoStory/limitedeArtigos.png" alt="Reaching Limit of Articles" /></p>
 
 <p>And after the limit is reached we are presented with this:</p>
 
-<p><img src="http://www.0x90.zone/images/publicoStory/limiteReached.png" alt="Limit Reached" /></p>
+<p><img src="http://localhost:4000/images/publicoStory/limiteReached.png" alt="Limit Reached" /></p>
 
 <p>The very first thing that I saw was a subtle fade-out of the text on the story and I started wondering were the hell the text went. Of course, being me the very next thing is to see the source-code and, surprise surprise. There was the rest of the story. Not in a so friendly view but I could finish reading it.</p>
 
-<p><img src="http://www.0x90.zone/images/publicoStory/sourceLimiteReached.png" alt="Source Code of the Article" /></p>
+<p><img src="http://localhost:4000/images/publicoStory/sourceLimiteReached.png" alt="Source Code of the Article" /></p>
 
 <p>I then check other stories and the same thing happend, the story will be loaded but it will be hidden. Python to the rescue then! I created a litle script that recieves the URL of the story and clean everything to present with the raw text of the story. I could obviously create a document with all the images and stuff but, normally, the images appear on the header of the page and are not hidden (Some exceptions apply).</p>
 
@@ -107,7 +107,7 @@
 
 <span class="n">sys</span><span class="o">.</span><span class="nb">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></code></pre></figure>
 
-<p><img src="http://www.0x90.zone/images/publicoStory/pythonInAction.png" alt="Article from the Script" /></p>
+<p><img src="http://localhost:4000/images/publicoStory/pythonInAction.png" alt="Article from the Script" /></p>
 
 <p>To summarize, if you are building a web portal. Check permissions first hand and don’t just hide information. A simple mitigation for this issue is to, when clicking on the button to read the whole story an AJAX request is made to the server where is going to check the login information. This will help the changes not be so abrupt to the application.
 Also, this is just an example of what could happen I don’t endorse this method and if you really want to read some the news on this or another paid website, you should contribuite to that newspapper so they can keep doing their good job.</p>

@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Path Transverse Reprise Licence Manager (CVE-2018-5716)"
-date:   2017-04-16 17:20:51 +0100
+date:   2018-02-16 17:20:51 +0100
 categories: web path-transversial
 ---
 

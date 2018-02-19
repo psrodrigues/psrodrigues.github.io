@@ -6,11 +6,11 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Path Transverse Reprise Licence Manager (CVE-2018-5716)</title>
+  <title>Path Traversal Reprise Licence Manager (CVE-2018-5716)</title>
   <meta name="description" content="This post will demonstrate a vulnerability in the Reprise Licence Manager (RLM) version 11.0  found while doing a pentest. The vulnerability in question allo...">
 
   <link rel="stylesheet" href="/css/main.css">
-  <link rel="canonical" href="http://localhost:4000/web/path-transversial/2018/02/16/Path-Transverse-Reprise-LM.html">
+  <link rel="canonical" href="http://localhost:4000/web/path-traversal/2018/02/16/Path-Traversal-Reprise-LM.html">
   <link rel="alternate" type="application/rss+xml" title="0x90" href="http://localhost:4000/feed.xml">
 </head>
 
@@ -57,7 +57,7 @@
         <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title" itemprop="name headline">Path Transverse Reprise Licence Manager (CVE-2018-5716)</h1>
+    <h1 class="post-title" itemprop="name headline">Path Traversal Reprise Licence Manager (CVE-2018-5716)</h1>
     <p class="post-meta"><time datetime="2018-02-16T16:20:51+00:00" itemprop="datePublished">Feb 16, 2018</time></p>
   </header>
 
@@ -68,7 +68,7 @@
 
 <p>This situation was reported to the <strong>Reprise Software Inc.</strong> and was promply considered <strong>NOT A VULNERABILITY</strong> since the application was to be installed as a non-priviledged user. However I strongly disagree since an attacker can access some files that are available for all users on the system. This issue could be easly resolved by having a list of files where the application can access and limit the access to the Web Application only.</p>
 
-<p>A <strong>CVE ID (CVE-2018-5716)</strong> was issue for this vulnerability and is going to be released soon.</p>
+<p>A <strong>CVE (CVE-2018-5716)</strong> was issued for this vulnerability and is going to be released soon.</p>
 
 <p>Without any further ado here comes the details of it:</p>
 
@@ -76,28 +76,28 @@
 
 <p>One interesting aspect is that you can write any extension for the file so .EXE files where an attacker could write executable files. However, <strong>the [&lt;&gt;&amp;] aren’t allowed</strong> so introducing WebShells won’t be so easy.</p>
 
-<p><img src="http://localhost:4000/images/reprise_path_transversial/reprise_exe_upload.png" alt="Uploading an EXE Extension File" /></p>
+<p><img src="http://localhost:4000/images/reprise_path_traversal/reprise_exe_upload.png" alt="Uploading an EXE Extension File" /></p>
 
 <p>The vector itself that this vulnerability is refering will be located on the http(s)://ipOfServer:port/<strong>/goform/edit_lf_get_data</strong>. Analysing the request with burp we can see the parameter where a full path of a file is being send:</p>
 
-<p><img src="http://localhost:4000/images/reprise_path_transversial/reprise_path_trans.png" alt="Request with potention Arbitrary file Read" /></p>
+<p><img src="http://localhost:4000/images/reprise_path_traversal/reprise_path_trans.png" alt="Request with potention Arbitrary file Read" /></p>
 
 <p>If we change the path to some file out of the directory structure, like for example the hosts file in windows we can see the response in the Web browser where the file will be presented:
-<img src="http://localhost:4000/images/reprise_path_transversial/reprise_path_hosts.png" alt="Arbitrary File Read" />
-<img src="http://localhost:4000/images/reprise_path_transversial/reprise_exploited.png" alt="Arbitrary File Read 2" /></p>
+<img src="http://localhost:4000/images/reprise_path_traversal/reprise_path_hosts.png" alt="Arbitrary File Read" />
+<img src="http://localhost:4000/images/reprise_path_traversal/reprise_exploited.png" alt="Arbitrary File Read 2" /></p>
 
 <p>As we can see in the picture above a file outside the Web root was acessed without any control. The matter is worsen since the application accepts in the user interface any file, by direct input thus Reprise Software Inc. won’t consider this a vulnerability. However an attacker can overwrite some important files, like the application log hence hidding their tracks. A solution passes by limiting the file access to the directory structure or to a license folder, avoiding the writting of files with different extensions.</p>
 
 <p>Next I present to you the form where you can input any file to be read (and then overwritten, giving the permissions):
-<img src="http://localhost:4000/images/reprise_path_transversial/reprise_arb1.png" alt="Arbitrary File Read 3" />
-<img src="http://localhost:4000/images/reprise_path_transversial/reprise_arb2.png" alt="Arbitrary File Read 4" /></p>
+<img src="http://localhost:4000/images/reprise_path_traversal/reprise_arb1.png" alt="Arbitrary File Read 3" />
+<img src="http://localhost:4000/images/reprise_path_traversal/reprise_arb2.png" alt="Arbitrary File Read 4" /></p>
 
 <p>For testing and record next is the about page where it states the product version:
-<img src="http://localhost:4000/images/reprise_path_transversial/reprise_about.png" alt="About" /></p>
+<img src="http://localhost:4000/images/reprise_path_traversal/reprise_about.png" alt="About" /></p>
 
 <p>On conclusion, this is my opinion <strong>only</strong>, that this behaviour represents a danger since the attacker can read arbitrary data provided its stored on the disk <strong>AND</strong> we have permission to read. However a lot of information can be retrieved from files that have low permissions standards. The recomendation that the company gave me is to lower the permissions level so the application can’t read critical files, but I think that solution won’t be enough and based on the OWASP Path Transversal (<a href="https://www.owasp.org/index.php/Path_Traversal">OWASP Path Transversal</a>) it is still considered a vulnerability. There is the possibility to disable the interface.</p>
 
-<p>I hereby don’t incentivize to exploit this vulnerability for malicious purposes and me research was only an academic one without interference or harm to any people.</p>
+<p>I hereby don’t incentivize to exploit this vulnerability for malicious purposes and my research was only an academic one without interference or harm to any people.</p>
 
 
   </div>

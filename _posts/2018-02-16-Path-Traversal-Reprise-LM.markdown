@@ -11,7 +11,7 @@ This vulnerability allows to access files, and therefore gather aditional info a
 
 This situation was reported to the **Reprise Software Inc.** and was promply considered **NOT A VULNERABILITY** since the application was to be installed as a non-priviledged user. However I strongly disagree since an attacker can access some files that are available for all users on the system. This issue could be easly resolved by having a list of files where the application can access and limit the access to the Web Application only.
 
-A **CVE ID (CVE-2018-5716)** was issue for this vulnerability and is going to be released soon.
+A **CVE (CVE-2018-5716)** was issued for this vulnerability and is going to be released soon.
 
 Without any further ado here comes the details of it:
 
@@ -43,6 +43,6 @@ For testing and record next is the about page where it states the product versio
 
 On conclusion, this is my opinion **only**, that this behaviour represents a danger since the attacker can read arbitrary data provided its stored on the disk **AND** we have permission to read. However a lot of information can be retrieved from files that have low permissions standards. The recomendation that the company gave me is to lower the permissions level so the application can't read critical files, but I think that solution won't be enough and based on the OWASP Path Transversal ([OWASP Path Transversal](https://www.owasp.org/index.php/Path_Traversal)) it is still considered a vulnerability. There is the possibility to disable the interface. 
 
-I hereby don't incentivize to exploit this vulnerability for malicious purposes and me research was only an academic one without interference or harm to any people.
+I hereby don't incentivize to exploit this vulnerability for malicious purposes and my research was only an academic one without interference or harm to any people.
 
 

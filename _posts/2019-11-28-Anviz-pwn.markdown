@@ -83,19 +83,19 @@ Then we got stuck. The last bytes we suspect being some kind of control but coul
 
 Then we start looking at the vendors' Website for clues and we found them! There is an available SDK to build your own management software. This is the example of [AEON](https://www.telemax.pt/pt-PT/produto/31706/AEON-GOLD.html) a software that allows managing Anviz devices. Since that software is not free, we won't be looking for vulnerabilities on it since we don't have it.
 
-![SDK Download]({{ "/images/anviz/anvizsdkdownload1.png" | absolute_url}})
+![SDK Download]({{ "images/anviz/anvizsdkdownload1.png" | absolute_url}})
 
 By looking in the SDK we discovered all the structures needed to communicate to the device and yes, we should look it up sooner... But it was fun to know that some assumptions were actually true.
 
 The SDK comes with a word document, with all the exported functions of the DLL SDK. It also comes with a test program that we can use to send requests.
 
-![SDK Documentation]({{ "/images/anviz/SDKword.png" | absolute_url}})
+![SDK Documentation]({{ "images/anviz/SDKword.png" | absolute_url}})
 
 By reviewing this document we can understand what really is sent and retrieve on the wire. It is also possible to understand the responses now. As you can see in the
 
 As you can see in the screenshot above. No password is given (CVE-2019-12392). If you think the CchexHandle contains a connection with the password, you are wrong. the handle is just created with the connection and can be bypassed without issue since we are introducing our code that will query the device immediately. There is no prior handshake required. These behaviour is also present when you try to change settings on the device, such as changing the administrator password. No previous password is required (CVE-2019-12394). For example, you can query all the information that is stored in the device, such as cleartext passwords/pins, RFID tag, name, and several other personal parameters that the device allows you to storage to identify a user (CVE-2019-12390/CVE-2019-12389/CVE-2019-12388).
 
-![Pointing to CRC Function]({{ "/images/anviz/pii.png" | absolute_url }})
+![Pointing to CRC Function]({{ "images/anviz/pii.png" | absolute_url }})
 
 The sad part is that some assumptions are true, meaning that the password isn't required for anything and anything that is able to speak with port tcp/5010 on the device can access ALL the information that the device stores.
 
@@ -103,23 +103,23 @@ Regarding the checksum. We fired up IDA to check if we could find the checksum f
 
 There are several techniques to discover this function. Search for the CRC16 code (you need to know how a CRC is done at the assembly level), to go throw the flow of each function to send the payload, or since this is a function that, for every request, is called it may have a lot of references to it. This is easy to find in IDA.
 
-![Pointing to CRC Function]({{ "/images/anviz/IDA-EVERYTHINGSPOINTTOCRC16.png" | absolute_url}})
+![Pointing to CRC Function]({{ "images/anviz/IDA-EVERYTHINGSPOINTTOCRC16.png" | absolute_url}})
 
 This may indicate a strong candidate for the flow that we are looking for. Following the flow of a request and right before sending we came across this:
 
-![CRC Function]({{ "/images/anviz/IDA-CRC.png" | absolute_url}})
+![CRC Function]({{ "images/anviz/IDA-CRC.png" | absolute_url}})
 
 In the block named "JACKPOT", we can see a mock function for a CRC function. So, why didn't it worked? because of the reference in _.text:100453AF_. It references an array such as described in the "standard" implementation [CRC32](https://en.wikipedia.org/wiki/Cyclic_redundancy_check#CRC-32_algorithm) (but remember that we are looking for CRC16).
 
 In the implementation, there is an array with specific numbers that will be XORed with the payload so it can produce the checksum. The array has specific values for this implementation. Following the reference we get the actual array:
 
-![CRC Function Table]({{ "/images/anviz/IDA-CRCtable.png" | absolute_url}})
+![CRC Function Table]({{ "images/anviz/IDA-CRCtable.png" | absolute_url}})
 
 The other bytes are indeed variable and are related to each command, for example, if it is to set data or just retrieve it.
 
 In the specification, there is a lot of information available, such as the methods available. some interesting methods reveal some curious functions such as retrieving GSM data (for mobile integrations) or even upload a new firmware. Just imagine uploading a backdoored firmware that allows us to pivot into the network =D.
 
-![Anviz Export table]({{ "/images/anviz/ExportTable.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/ExportTable.png" | absolute_url}})
 
 After a while from when we discovered a document with the developed specification was "[leaked](https://github.com/benperiton/anviz-protocol/blob/master/Docs/CommsProtocol.pdf)" that details everything on the SDK. This helped us validating all the implementations made. Turns out, asking Anviz support is a great [help](http://qaru.site/questions/4210248/whats-the-checksum-algorithm-for-anviz-devices).
 
@@ -159,15 +159,15 @@ While looking at the network traffic we noticed a small connection to an "UPDATE
 
 The upgrade requests a manifest file, passing as an argument the revision name, where it states the latest version and all the files that needs to download from the server to upgrade.
 
-![Anviz Export table]({{ "/images/anviz/cxupdate1.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate1.png" | absolute_url}})
 
 Luckily this version number is stored on a file inside the installation directory. We started by going back 1 version and inspect how the installation is done, to rule out a PGP verification afterwards (like some package managers do to verify that only the vendor issued the package).
 
-![Anviz Export table]({{ "/images/anviz/cxupdate2.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate2.png" | absolute_url}})
 
 Weird enough the version number is just something to print out on the interface. To trigger the rest of the interactions you need to change the _"VerNumber"_. Changing to a lower number will trigger the rest of the process and we can now see what is an expected response:
 
-![Anviz Export table]({{ "/images/anviz/cxupdate3.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate3.png" | absolute_url}})
 
 As we can see in the picture, requesting a lower version number will print out a manifest with the _"NewVersion"_ and _"FileList"_ sections. The first, _"NewVersion"_ is just like that, the new version. The other section, _"FileList"_ is what indicates what files should be downloaded and replaced in the installation folder.
 
@@ -175,18 +175,18 @@ You can also see a new request using the same connection to GET a readme file. T
 
 By clicking _"Upgrade_" we can see in Wireshark the files being download just as we suspected!
 
-![Anviz Export table]({{ "/images/anviz/cxupdate4.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate4.png" | absolute_url}})
 
 So, what if we redirect the traffic to an attackers machine and deliver our own manifest with an infected file? In theory and since we need to run this as an administrator, we can get an administrative shell. To do that we simulate the redirect by changing the host entry in the hosts file and point to our Kali machine. Then we serve a higher version number and just a new file to be downloaded, the CrossChex.exe, which is a meterpreter reverse shell.
 
 By creating our own server we can increment by 1 the revision number and point to an infected crosschex.exe file. The installation is done using elevated privileges and on the end, our payload is triggered and we have our reverse shell =). This means anyone that is able to intercept traffic or perform a DNS poisoning attack can compromise the service and gain elevated privileges on the software.
 
-![Anviz Export table]({{ "/images/anviz/cxupdate5.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate5.png" | absolute_url}})
 
 Pay attention to the file structure. It's paramount that the "Upgrade.html" version number is coherent with the folder inside the _"./Upgrade/download"_ location.
 
-![Anviz Export table]({{ "/images/anviz/cxupdate6.png" | absolute_url}})
-![Anviz Export table]({{ "/images/anviz/cxupdate7.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate6.png" | absolute_url}})
+![Anviz Export table]({{ "images/anviz/cxupdate7.png" | absolute_url}})
 
 Right after the "Upgrade" is done, the shell is popped and the victim compromised. No need for further interaction.
 

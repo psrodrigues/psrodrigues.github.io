@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Anviz Pwn! How broken devices could be? (CVE-2019-12393/CVE-2019-12391/CVE-2019-12392/CVE-2019-12390/CVE-2019-12389/CVE-2019-12388/CVE-2019-12394)"
+title:  "Anviz Pwn! How broken devices could be? (CVE-2019-12393/CVE-2019-12391/CVE-2019-12392/CVE-2019-12390/CVE-2019-12389/CVE-2019-12388/CVE-2019-12394/CVE-2019-12518)"
 date:   2019-11-28 01:01:00 +0100
 categories: multiple reverse
 ---
@@ -44,15 +44,19 @@ Every packet starts with a preamble _\xa50_ and every packet has a replay attack
 
 From what was able to perceive we draft the following structure:
 
+```
 | Preamble |       DATA UNKNOWN       |                  CMD                   |                              LEN                              |   DATA UNKOWN   |
 | :------: | :----------------------: | :------------------------------------: | :-----------------------------------------------------------: | :-------------: |
 |   \xa5   | <4 bytes, small numbers> | <1 byte, changes with issued command > | <2 bytes changes with the amount of data, 0 to a get command> | 2 or more bytes |
+```
 
 And the answers are similar depending on the information required
 
+```
 | Preamble |       DATA UNKNOWN        |      CMD+128       |       ACK        |                              LEN                               |   DATA UNKOWN   |
 | :------: | :-----------------------: | :----------------: | :--------------: | :------------------------------------------------------------: | :-------------: |
 |   \xa5   | < same as in the request> | <1 byte, CMD+128 > | 1byte(exit code) | <2 bytes changes with the ammount of data, 0 to a get command> | 2 or more bytes |
+```
 
 However, we weren't able to determine where the password was being sent. We were able to look for the password in the GET_DEVICE_INFO command. This is interesting since we now know how the data is arranged (little-endian vs. big-endian). But, the password is not transmitted in any of the packets... does that mean?... Well yes, the password doesn't do shit.
 
@@ -62,9 +66,11 @@ Furthermore, Anviz itself propose an architecture implementation where they reco
 Thus it's paramount to understand the protocol to be able to exploit the device.
 Lets head back to the CMD_OPEN_DOOR and the other requests captured:
 
+```
 | Preamble |   DATA UNKNOWN   | CMD  |   LEN    |       DATA UNKOWN        |
 | :------: | :--------------: | :--: | :------: | :----------------------: |
-|   \xa5   | \x00\x00\x00\x00 | \x5e | \x00\x00 | \x07\x05 |
+|   \xa5   | \x00\x00\x00\x00 | \x5e | \x00\x00 | \x07\x05                 |
+```
 
 The packet data starts always with a _\xa5_ byte. Depending on the device we tested the following four bytes differ. Maybe something related with the device identification? Weird enough with NULL bytes the request is accepted by every device.
 This packet also doesn't produce logs in the management service, meaning that no record of the operation was created (CVE-2019-12391).
@@ -77,19 +83,19 @@ Then we got stuck. The last bytes we suspect being some kind of control but coul
 
 Then we start looking at the vendors' Website for clues and we found them! There is an available SDK to build your own management software. This is the example of [AEON](https://www.telemax.pt/pt-PT/produto/31706/AEON-GOLD.html) a software that allows managing Anviz devices. Since that software is not free, we won't be looking for vulnerabilities on it since we don't have it.
 
-![SDK Download](images/anviz/anvizsdkdownload1.png)
+![SDK Download]({{ "/images/anviz/anvizsdkdownload1.png" | absolute_url}})
 
 By looking in the SDK we discovered all the structures needed to communicate to the device and yes, we should look it up sooner... But it was fun to know that some assumptions were actually true.
 
 The SDK comes with a word document, with all the exported functions of the DLL SDK. It also comes with a test program that we can use to send requests.
 
-![SDK Documentation](images/anviz/SDKword.png)
+![SDK Documentation]({{ "/images/anviz/SDKword.png" | absolute_url}})
 
 By reviewing this document we can understand what really is sent and retrieve on the wire. It is also possible to understand the responses now. As you can see in the
 
 As you can see in the screenshot above. No password is given (CVE-2019-12392). If you think the CchexHandle contains a connection with the password, you are wrong. the handle is just created with the connection and can be bypassed without issue since we are introducing our code that will query the device immediately. There is no prior handshake required. These behaviour is also present when you try to change settings on the device, such as changing the administrator password. No previous password is required (CVE-2019-12394). For example, you can query all the information that is stored in the device, such as cleartext passwords/pins, RFID tag, name, and several other personal parameters that the device allows you to storage to identify a user (CVE-2019-12390/CVE-2019-12389/CVE-2019-12388).
 
-![Pointing to CRC Function](images/anviz/pii.png)
+![Pointing to CRC Function]({{ "/images/anviz/pii.png" | absolute_url }})
 
 The sad part is that some assumptions are true, meaning that the password isn't required for anything and anything that is able to speak with port tcp/5010 on the device can access ALL the information that the device stores.
 
@@ -97,37 +103,39 @@ Regarding the checksum. We fired up IDA to check if we could find the checksum f
 
 There are several techniques to discover this function. Search for the CRC16 code (you need to know how a CRC is done at the assembly level), to go throw the flow of each function to send the payload, or since this is a function that, for every request, is called it may have a lot of references to it. This is easy to find in IDA.
 
-![Pointing to CRC Function](images/anviz/IDA-EVERYTHINGSPOINTTOCRC16.png)
+![Pointing to CRC Function]({{ "/images/anviz/IDA-EVERYTHINGSPOINTTOCRC16.png" | absolute_url}})
 
 This may indicate a strong candidate for the flow that we are looking for. Following the flow of a request and right before sending we came across this:
 
-![CRC Function](images/anviz/IDA-CRC.png)
+![CRC Function]({{ "/images/anviz/IDA-CRC.png" | absolute_url}})
 
 In the block named "JACKPOT", we can see a mock function for a CRC function. So, why didn't it worked? because of the reference in _.text:100453AF_. It references an array such as described in the "standard" implementation [CRC32](https://en.wikipedia.org/wiki/Cyclic_redundancy_check#CRC-32_algorithm) (but remember that we are looking for CRC16).
 
 In the implementation, there is an array with specific numbers that will be XORed with the payload so it can produce the checksum. The array has specific values for this implementation. Following the reference we get the actual array:
 
-![CRC Function Table](images/anviz/IDA-CRCtable.png)
+![CRC Function Table]({{ "/images/anviz/IDA-CRCtable.png" | absolute_url}})
 
 The other bytes are indeed variable and are related to each command, for example, if it is to set data or just retrieve it.
 
 In the specification, there is a lot of information available, such as the methods available. some interesting methods reveal some curious functions such as retrieving GSM data (for mobile integrations) or even upload a new firmware. Just imagine uploading a backdoored firmware that allows us to pivot into the network =D.
 
-![Anviz Export table](images/anviz/ExportTable.png)
+![Anviz Export table]({{ "/images/anviz/ExportTable.png" | absolute_url}})
 
 After a while from when we discovered a document with the developed specification was "[leaked](https://github.com/benperiton/anviz-protocol/blob/master/Docs/CommsProtocol.pdf)" that details everything on the SDK. This helped us validating all the implementations made. Turns out, asking Anviz support is a great [help](http://qaru.site/questions/4210248/whats-the-checksum-algorithm-for-anviz-devices).
 
 Comparing what we suspected from what it really was we can see that it was very
-
+```
 | Preamble |  CHANNEL  |   CMD    |    LEN    |       DATA       |   CRC16   |
 | :------: | :-------: | :------: | :-------: | :--------------: | :-------: |
 |   \xa5   | <4 bytes> | <1 byte> | <2 bytes> | <0 to 400 bytes> | <2 bytes> |
-
+```
 An with these we test the last 2 bytes and it corresponds to the CRC16 of the first packet. This leads us to the conclusion that they are in fact checksum bytes. CRC16 bytes.
 
+```
 | Preamble |          CHANNEL          |      CMD+128       |       ACK        |                              LEN                               |                 DATA                  | CRC16           |
 | :------: | :-----------------------: | :----------------: | :--------------: | :------------------------------------------------------------: | :-----------------------------------: | :-------------- |
 |   \xa5   | < same as in the request> | <1 byte, CMD+128 > | 1byte(exit code) | <2 bytes changes with the ammount of data, 0 to a get command> | < variable number of bytes up to 400> | 2 or more bytes |
+```
 
 We started creating a small python program to interact with the device, to retrieve data and to add data (a user for example). This script is helpful to scrape the internet for exposed devices. We conduct a small survey using public available information to understand what companies were exposed on the internet.
 
@@ -143,7 +151,7 @@ After requesting the help we kept on digging. So far we have full control of the
 
 With that permissive, we look at what service were provided by the application using standard Sysinternals tools. We can see two services. One provided in TCP/33302 and other in UDP/5060. The last one is relatable to the network scan that the application allows us to do to discover new devices on the network. Again, by running Wireshark we should be able to see how a device responds. It was quick to understand that the protocol is still being used and it remains the same and since we understand it we can emulate a device and feed erroneous data to the application. For that, we create a script that fuzzed the protocol as soon as a CMD_DISCOVERY message was received. It took no time to rewrite the EIP value. But of course, an application of this calibre should have ASLR and DEP enable right? Well yes, but dudilengesactually no... It is disabled as seen in this Sysinternals Process Explorer screenshot.
 
-By waiting for the CrosscChex broadcast looking for new devices, a custom broadcast packet was crafted and sent to the network, triggering the buffer overflow. At this point, due to the lack of memory protection, it was possible to search for a JMP ESP instruction to point the EIP register to, and a malicious payload was placed on top of the stack. Due to limitations on the UDP packets size, not all payloads were possible, but between the ones that were, popping a calculator and a reverse shell were the Proof-of-Concepts we decided to share.
+By waiting for the CrosscChex broadcast looking for new devices, a custom broadcast packet was crafted and sent to the network, triggering the buffer overflow. At this point, due to the lack of memory protection, it was possible to search for a JMP ESP instruction to point the EIP register to, and a malicious payload was placed on top of the stack. Due to limitations on the UDP packets size, not all payloads were possible, but between the ones that were, popping a calculator and a reverse shell were the Proof-of-Concepts we decided to share. If you want the code for the exploit please refer it to [CVE-2019-12518](https://github.com/psrodrigues/anvizpwn).
 
 A quick exploit was build to trigger the vulnerability and has we can see, we are running as the user that started the application. However, this user needs to have elevated privileges to run the application so it is easy to escalate from here.
 
@@ -151,15 +159,15 @@ While looking at the network traffic we noticed a small connection to an "UPDATE
 
 The upgrade requests a manifest file, passing as an argument the revision name, where it states the latest version and all the files that needs to download from the server to upgrade.
 
-![Anviz Export table](images/anviz/cxupdate1.png)
+![Anviz Export table]({{ "/images/anviz/cxupdate1.png" | absolute_url}})
 
 Luckily this version number is stored on a file inside the installation directory. We started by going back 1 version and inspect how the installation is done, to rule out a PGP verification afterwards (like some package managers do to verify that only the vendor issued the package).
 
-![Anviz Export table](images/anviz/cxupdate2.png)
+![Anviz Export table]({{ "/images/anviz/cxupdate2.png" | absolute_url}})
 
 Weird enough the version number is just something to print out on the interface. To trigger the rest of the interactions you need to change the _"VerNumber"_. Changing to a lower number will trigger the rest of the process and we can now see what is an expected response:
 
-![Anviz Export table](images/anviz/cxupdate3.png)
+![Anviz Export table]({{ "/images/anviz/cxupdate3.png" | absolute_url}})
 
 As we can see in the picture, requesting a lower version number will print out a manifest with the _"NewVersion"_ and _"FileList"_ sections. The first, _"NewVersion"_ is just like that, the new version. The other section, _"FileList"_ is what indicates what files should be downloaded and replaced in the installation folder.
 
@@ -167,18 +175,18 @@ You can also see a new request using the same connection to GET a readme file. T
 
 By clicking _"Upgrade_" we can see in Wireshark the files being download just as we suspected!
 
-![Anviz Export table](images/anviz/cxupdate4.png)
+![Anviz Export table]({{ "/images/anviz/cxupdate4.png" | absolute_url}})
 
 So, what if we redirect the traffic to an attackers machine and deliver our own manifest with an infected file? In theory and since we need to run this as an administrator, we can get an administrative shell. To do that we simulate the redirect by changing the host entry in the hosts file and point to our Kali machine. Then we serve a higher version number and just a new file to be downloaded, the CrossChex.exe, which is a meterpreter reverse shell.
 
 By creating our own server we can increment by 1 the revision number and point to an infected crosschex.exe file. The installation is done using elevated privileges and on the end, our payload is triggered and we have our reverse shell =). This means anyone that is able to intercept traffic or perform a DNS poisoning attack can compromise the service and gain elevated privileges on the software.
 
-![Anviz Export table](images/anviz/cxupdate5.png)
+![Anviz Export table]({{ "/images/anviz/cxupdate5.png" | absolute_url}})
 
 Pay attention to the file structure. It's paramount that the "Upgrade.html" version number is coherent with the folder inside the _"./Upgrade/download"_ location.
 
-![Anviz Export table](images/anviz/cxupdate6.png)
-![Anviz Export table](images/anviz/cxupdate7.png)
+![Anviz Export table]({{ "/images/anviz/cxupdate6.png" | absolute_url}})
+![Anviz Export table]({{ "/images/anviz/cxupdate7.png" | absolute_url}})
 
 Right after the "Upgrade" is done, the shell is popped and the victim compromised. No need for further interaction.
 

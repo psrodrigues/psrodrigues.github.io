@@ -1,0 +1,206 @@
+---
+layout: post
+title:  "Anviz Pwn! How broken devices could be? (CVE-2019-12393/CVE-2019-12391/CVE-2019-12392/CVE-2019-12390/CVE-2019-12389/CVE-2019-12388/CVE-2019-12394)"
+date:   2019-11-28 01:01:00 +0100
+categories: multiple reverse
+---
+
+# How broke is your biometrics?
+
+## Anviz study case
+
+Anviz is a company that provides products that help secure facilities by controlling access to them, being by scanning a keycard or by verifying some biometric patterns on the people accessing it.
+
+This story starts like so many stories start. Anviz sellers told me and [@Luis Catarino](https://twitter.com/_lcatarino) that their system was 'top of the line' and that was as secure it can be. So, we decided to put it to the test.
+
+Starting by building the infrastructure. The systems are quite simple to install. There are devices and there is a management application. Several implementations of the same application exist but we are going to only look for the official ones (CrossChex and Anviz Management System).
+
+In a controlled IP network, we deploy three devices and set an IP address for each one. Then, on the management application we saw something weird as soon we tried to add the deployed devices. An Exception, cannot access memory. Humm looks weird but lets us proceed.
+
+From the management console, we can add new devices by point to an IP and setting up a management password if needed. The console speaks by a proprietary protocol to the device. There are other ways of connecting to the device such as USB or [RS-232](https://en.wikipedia.org/wiki/RS-232), but let us focus on the IP implementation since it's the most widespread.
+
+## Replay attack (CVE-2019-12393)
+
+From the console we can perform several actions: open the door by software, retrieve records and users' data, set the time and date and so on...
+
+Ok, so we have a device that communicates using an IP network stack to a device. Let us analyse the protocol with Wireshark.
+
+First, let us start with the basics. We wanted to know how to open the door with the smartphone (like the cool kids in [Watch Dogs](https://www.ubisoft.com/en-us/game/watch-dogs-2/), the game). For that, we send the request to open the door and see the network traffic on Wireshark.
+
+The first thing we tested is to replay the request. If the packet is valid and we can replay it we are sure that there is no [NONCE](https://en.wikipedia.org/wiki/Cryptographic_nonce) being employed and we can just send the packet every time we want to open the door.
+
+Success! the devices are vulnerable to replay attacks!
+
+## Reverse Engineering the protocol
+
+If the device is vulnerable to replay attacks and the protocol doesn't employ any encryption we can see how the authentication process is being made.
+
+In Wireshark we know, by looking at the packets under a controlled environment, that the device answers on port tcp/5010. We can then apply a filter to only filter communication on that port and follow the TCP stream.
+
+The packets are incorrectly labelled IPCTL packets but that's not the correct protocol. We needed to interpret the data packets as a new protocol.
+
+We then start by performing actions on the device to reverse engineer the protocol.
+Every packet starts with a preamble _\xa50_ and every packet has a replay attack vulnerability, meaning that for every request we made, if we replicate it, the device would answer. With that in mind, and due to the fact the packets are deterministic, we start by performing small and basic operations such as open the door by software, getting device information, get the number of records saved in the device, getting network information of the device and get the time and date of the device.
+
+From what was able to perceive we draft the following structure:
+
+| Preamble |       DATA UNKNOWN       |                  CMD                   |                              LEN                              |   DATA UNKOWN   |
+| :------: | :----------------------: | :------------------------------------: | :-----------------------------------------------------------: | :-------------: |
+|   \xa5   | <4 bytes, small numbers> | <1 byte, changes with issued command > | <2 bytes changes with the amount of data, 0 to a get command> | 2 or more bytes |
+
+And the answers are similar depending on the information required
+
+| Preamble |       DATA UNKNOWN        |      CMD+128       |       ACK        |                              LEN                               |   DATA UNKOWN   |
+| :------: | :-----------------------: | :----------------: | :--------------: | :------------------------------------------------------------: | :-------------: |
+|   \xa5   | < same as in the request> | <1 byte, CMD+128 > | 1byte(exit code) | <2 bytes changes with the ammount of data, 0 to a get command> | 2 or more bytes |
+
+However, we weren't able to determine where the password was being sent. We were able to look for the password in the GET_DEVICE_INFO command. This is interesting since we now know how the data is arranged (little-endian vs. big-endian). But, the password is not transmitted in any of the packets... does that mean?... Well yes, the password doesn't do shit.
+
+So, we have a protocol, vulnerable to replay attacks and that requires no password to respond. Now the stakes are high. If by reverse engineering the protocol we can emulate a device and retrieve information about the records stored, the fingerprint, passwords, names and PINs of every user enrolled in the device that will demonstrate that the device is prone to attacks that disclose sensitive information.
+Furthermore, Anviz itself propose an architecture implementation where they recommend to expose the device itself, to interconnect different [sites](https://www.anviz.com/faq/19.html) this means that there are some people, port forwarding these connections to the world, exposing all the biometric data (small vector table) and some personally identifiable information about the users!
+
+Thus it's paramount to understand the protocol to be able to exploit the device.
+Lets head back to the CMD_OPEN_DOOR and the other requests captured:
+
+| Preamble |   DATA UNKNOWN   | CMD  |   LEN    |       DATA UNKOWN        |
+| :------: | :--------------: | :--: | :------: | :----------------------: |
+|   \xa5   | \x00\x00\x00\x00 | \x5e | \x00\x00 | \x07\x05 |
+
+The packet data starts always with a _\xa5_ byte. Depending on the device we tested the following four bytes differ. Maybe something related with the device identification? Weird enough with NULL bytes the request is accepted by every device.
+This packet also doesn't produce logs in the management service, meaning that no record of the operation was created (CVE-2019-12391).
+
+Next, we saw the same two bytes for each operation we were performing, as already stated above. This suggests that it is the command code, for instance, the command to open the door, the command to get information, and so on.
+
+Next, we saw different kinds of data, depending on if we were just requesting information or setting information. This may suggest additional parameters on the payload.
+
+Then we got stuck. The last bytes we suspect being some kind of control but couldn't figure it out what it was. We even tried to send NULL bytes but it wasn't being accepted by the device. This may suggest that is some kind of checksum. From the size (2-bytes) it could be a CRC16. However, the simple CRC16 was not working out.
+
+Then we start looking at the vendors' Website for clues and we found them! There is an available SDK to build your own management software. This is the example of [AEON](https://www.telemax.pt/pt-PT/produto/31706/AEON-GOLD.html) a software that allows managing Anviz devices. Since that software is not free, we won't be looking for vulnerabilities on it since we don't have it.
+
+![SDK Download](images/anviz/anvizsdkdownload1.png)
+
+By looking in the SDK we discovered all the structures needed to communicate to the device and yes, we should look it up sooner... But it was fun to know that some assumptions were actually true.
+
+The SDK comes with a word document, with all the exported functions of the DLL SDK. It also comes with a test program that we can use to send requests.
+
+![SDK Documentation](images/anviz/SDKword.png)
+
+By reviewing this document we can understand what really is sent and retrieve on the wire. It is also possible to understand the responses now. As you can see in the
+
+As you can see in the screenshot above. No password is given (CVE-2019-12392). If you think the CchexHandle contains a connection with the password, you are wrong. the handle is just created with the connection and can be bypassed without issue since we are introducing our code that will query the device immediately. There is no prior handshake required. These behaviour is also present when you try to change settings on the device, such as changing the administrator password. No previous password is required (CVE-2019-12394). For example, you can query all the information that is stored in the device, such as cleartext passwords/pins, RFID tag, name, and several other personal parameters that the device allows you to storage to identify a user (CVE-2019-12390/CVE-2019-12389/CVE-2019-12388).
+
+![Pointing to CRC Function](images/anviz/pii.png)
+
+The sad part is that some assumptions are true, meaning that the password isn't required for anything and anything that is able to speak with port tcp/5010 on the device can access ALL the information that the device stores.
+
+Regarding the checksum. We fired up IDA to check if we could find the checksum function. This was arduous work since some symbols were available but no one has the "checksum" or "CRC" on it. To be honest I think it's redundant that there is a checksum in a TCP connection. Additionally, someone might think: hey, why didn't you just use the SDK to interact with the devices, you moron?". Well albeit that being true, where is the fun in that? Furthermore, we were bound to the implementation of the API provided. That includes all "security" measures applied to it. By writing your own implementation we can fuzz the protocol if we intended to do that so.
+
+There are several techniques to discover this function. Search for the CRC16 code (you need to know how a CRC is done at the assembly level), to go throw the flow of each function to send the payload, or since this is a function that, for every request, is called it may have a lot of references to it. This is easy to find in IDA.
+
+![Pointing to CRC Function](images/anviz/IDA-EVERYTHINGSPOINTTOCRC16.png)
+
+This may indicate a strong candidate for the flow that we are looking for. Following the flow of a request and right before sending we came across this:
+
+![CRC Function](images/anviz/IDA-CRC.png)
+
+In the block named "JACKPOT", we can see a mock function for a CRC function. So, why didn't it worked? because of the reference in _.text:100453AF_. It references an array such as described in the "standard" implementation [CRC32](https://en.wikipedia.org/wiki/Cyclic_redundancy_check#CRC-32_algorithm) (but remember that we are looking for CRC16).
+
+In the implementation, there is an array with specific numbers that will be XORed with the payload so it can produce the checksum. The array has specific values for this implementation. Following the reference we get the actual array:
+
+![CRC Function Table](images/anviz/IDA-CRCtable.png)
+
+The other bytes are indeed variable and are related to each command, for example, if it is to set data or just retrieve it.
+
+In the specification, there is a lot of information available, such as the methods available. some interesting methods reveal some curious functions such as retrieving GSM data (for mobile integrations) or even upload a new firmware. Just imagine uploading a backdoored firmware that allows us to pivot into the network =D.
+
+![Anviz Export table](images/anviz/ExportTable.png)
+
+After a while from when we discovered a document with the developed specification was "[leaked](https://github.com/benperiton/anviz-protocol/blob/master/Docs/CommsProtocol.pdf)" that details everything on the SDK. This helped us validating all the implementations made. Turns out, asking Anviz support is a great [help](http://qaru.site/questions/4210248/whats-the-checksum-algorithm-for-anviz-devices).
+
+Comparing what we suspected from what it really was we can see that it was very
+
+| Preamble |  CHANNEL  |   CMD    |    LEN    |       DATA       |   CRC16   |
+| :------: | :-------: | :------: | :-------: | :--------------: | :-------: |
+|   \xa5   | <4 bytes> | <1 byte> | <2 bytes> | <0 to 400 bytes> | <2 bytes> |
+
+An with these we test the last 2 bytes and it corresponds to the CRC16 of the first packet. This leads us to the conclusion that they are in fact checksum bytes. CRC16 bytes.
+
+| Preamble |          CHANNEL          |      CMD+128       |       ACK        |                              LEN                               |                 DATA                  | CRC16           |
+| :------: | :-----------------------: | :----------------: | :--------------: | :------------------------------------------------------------: | :-----------------------------------: | :-------------- |
+|   \xa5   | < same as in the request> | <1 byte, CMD+128 > | 1byte(exit code) | <2 bytes changes with the ammount of data, 0 to a get command> | < variable number of bytes up to 400> | 2 or more bytes |
+
+We started creating a small python program to interact with the device, to retrieve data and to add data (a user for example). This script is helpful to scrape the internet for exposed devices. We conduct a small survey using public available information to understand what companies were exposed on the internet.
+
+We also contacted shodan to help us map all the exposed devices on the Internet. From now on, we can search shodan for these devices!
+
+A footnote on this CRC16 quest. We thought that the CRC16 was not standard since we used a python library and it didn't work. Turns out that it is indeed standard and there are a lot of implementations available with different polynomials. We were only stuck with one and didn't know. Thank you [@\_nunohumberto](https://twitter.com/_nunohumberto) for the heads up!
+
+## We need to go deeper! Exploiting the manager
+
+After these results, we contacted our national CSIRT authority to help us contacting those companies and coordinate a responsible disclosure, more on that below.
+
+After requesting the help we kept on digging. So far we have full control of the device. We can even understand the protocol. Won't it be cool if we pwn the management software? The software CrossChex requires Administrative credentials to run and create the necessary sockets and packets to send to the devices. If we can pwn the software we are an elevated user in a machine. Remember the first error that appears? It was trying to access an Operating System address range. That was weird. At the time we solve it by hard resetting all the devices in the network. If a device is misbehaving and caused that error, perhaps there is a chance of buffer overflow and remote compromise.
+
+With that permissive, we look at what service were provided by the application using standard Sysinternals tools. We can see two services. One provided in TCP/33302 and other in UDP/5060. The last one is relatable to the network scan that the application allows us to do to discover new devices on the network. Again, by running Wireshark we should be able to see how a device responds. It was quick to understand that the protocol is still being used and it remains the same and since we understand it we can emulate a device and feed erroneous data to the application. For that, we create a script that fuzzed the protocol as soon as a CMD_DISCOVERY message was received. It took no time to rewrite the EIP value. But of course, an application of this calibre should have ASLR and DEP enable right? Well yes, but dudilengesactually no... It is disabled as seen in this Sysinternals Process Explorer screenshot.
+
+By waiting for the CrosscChex broadcast looking for new devices, a custom broadcast packet was crafted and sent to the network, triggering the buffer overflow. At this point, due to the lack of memory protection, it was possible to search for a JMP ESP instruction to point the EIP register to, and a malicious payload was placed on top of the stack. Due to limitations on the UDP packets size, not all payloads were possible, but between the ones that were, popping a calculator and a reverse shell were the Proof-of-Concepts we decided to share.
+
+A quick exploit was build to trigger the vulnerability and has we can see, we are running as the user that started the application. However, this user needs to have elevated privileges to run the application so it is easy to escalate from here.
+
+While looking at the network traffic we noticed a small connection to an "UPDATE" service in plain HTTP. Could it be? Does it have space for an evilgrade attack in 2019? Well, yes it does =).
+
+The upgrade requests a manifest file, passing as an argument the revision name, where it states the latest version and all the files that needs to download from the server to upgrade.
+
+![Anviz Export table](images/anviz/cxupdate1.png)
+
+Luckily this version number is stored on a file inside the installation directory. We started by going back 1 version and inspect how the installation is done, to rule out a PGP verification afterwards (like some package managers do to verify that only the vendor issued the package).
+
+![Anviz Export table](images/anviz/cxupdate2.png)
+
+Weird enough the version number is just something to print out on the interface. To trigger the rest of the interactions you need to change the _"VerNumber"_. Changing to a lower number will trigger the rest of the process and we can now see what is an expected response:
+
+![Anviz Export table](images/anviz/cxupdate3.png)
+
+As we can see in the picture, requesting a lower version number will print out a manifest with the _"NewVersion"_ and _"FileList"_ sections. The first, _"NewVersion"_ is just like that, the new version. The other section, _"FileList"_ is what indicates what files should be downloaded and replaced in the installation folder.
+
+You can also see a new request using the same connection to GET a readme file. This text will output in the update Dialog interface.
+
+By clicking _"Upgrade_" we can see in Wireshark the files being download just as we suspected!
+
+![Anviz Export table](images/anviz/cxupdate4.png)
+
+So, what if we redirect the traffic to an attackers machine and deliver our own manifest with an infected file? In theory and since we need to run this as an administrator, we can get an administrative shell. To do that we simulate the redirect by changing the host entry in the hosts file and point to our Kali machine. Then we serve a higher version number and just a new file to be downloaded, the CrossChex.exe, which is a meterpreter reverse shell.
+
+By creating our own server we can increment by 1 the revision number and point to an infected crosschex.exe file. The installation is done using elevated privileges and on the end, our payload is triggered and we have our reverse shell =). This means anyone that is able to intercept traffic or perform a DNS poisoning attack can compromise the service and gain elevated privileges on the software.
+
+![Anviz Export table](images/anviz/cxupdate5.png)
+
+Pay attention to the file structure. It's paramount that the "Upgrade.html" version number is coherent with the folder inside the _"./Upgrade/download"_ location.
+
+![Anviz Export table](images/anviz/cxupdate6.png)
+![Anviz Export table](images/anviz/cxupdate7.png)
+
+Right after the "Upgrade" is done, the shell is popped and the victim compromised. No need for further interaction.
+
+## Disclosure
+
+With every research, there is a time where we need to finish all up and do all the due diligence, for instance, pack everything up and disclose and alert every vulnerable entity of the problem. The main goal here is not to hurt the company that made the product, it is to raise awareness about the issue and to better secure all networks.
+
+Yes, we can avoid so much pain and stress by not divulging our findings, but that will only create havoc when people would try to exploit this in the wild.
+
+Ok, the first time we try to contact the vendor it did not end up well. We were ignored and we got stuck immediately. We didn't want to release an 0-day and have stores broken into or hospitals, companies and airports that use this technology. So we contacted CNCS (Centro Nacional de Ciber Seguranca). It is a governmental entity from Portugal similar to a CSIRT that offer to aid us. With a great effort from them, we built an "attack map" this was gathered with the help of online scanners such as Shodan. With this information, we passed it to CNCS so they could contact the corresponding ISPs to gather information about the companies exposed. Due to local regulations, we couldn't contact home registered IPs. This means that a company that didn't declare itself as a company (companies cost for ISPs are often grater than home users) could not be reached. The others were contacted to remove the exposure from the internet before we release the tools and research.
+
+During this information gathering, we discovered a great number of exposed devices. We started questioned why is that? Why so many BIG companies exposed such devices. The answer lies in the documentation itself. As we should notice by now, RTFM comes in great help here. It turns out that the company recommends that the device should be exposed for intersite connectivity! Just do a port forwarding and you are done! No site2site tunnel, no firewall rules, just expose it since it's all secure, right? At this point, a researcher disclosed some similar vulnerabilities as us. This is great for us since it proves that our results can be [replicated](https://github.com/wizlab-it/anviz-m3-rfid-cve-2019-11523-poc)!
+
+Since there was no response to almost four tries, and since we got the all-clear from CNCS, we decided to publish the results. Meanwhile, the vendor decided to publish an article stating that their new version is GDPR compliant and such, but ignored us anyway. Since we did not send technical details about the vulnerabilities we don't know what fixes were made.
+
+Again, this research is released to the public but use it wisely, don't do warm to other people and be conscious about every command you type!
+
+## Conclusion
+
+This product is essentially flawed. In addition to the bad architecture and design of the product is the company posture regarding security. They did not contact us back during all the time we presented the issue. Even ignored the CSIRT contacts. There are mitigations to this issue. The first is to set all these devices on a segmented network without Internet access. Off course we are going to lose some functionality but that is the cost of having a "defective" device in the network.
+
+Regarding our own experience, it was awesome combining so many techniques to defeat the system! Since reverse engineering network protocols to exploiting buffer overflow and DNS poisoning. And obviously, the great contribution is to alert the community that even though a product is sold as a security product, it should have a security revision to ensure that it cannot jeopardize the security of the enterprise. One of the greatest interactions was the study that we made to understand how many people were vulnerable and warn them to protect them before releasing this vulnerability since the vendor refuses to answer our emails and warn their customers.
+
+From this disclosure we are making a tool to help other people research these issues in the future and to exploit it even further (in case someone is interested ;) ) [here](https://github.com/psrodrigues/anvizpwn).
+

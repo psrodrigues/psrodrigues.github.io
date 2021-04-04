@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Anviz Pwn! How broken devices could be? (CVE-2019-12393/CVE-2019-12391/CVE-2019-12392/CVE-2019-12390/CVE-2019-12389/CVE-2019-12388/CVE-2019-12394/CVE-2019-12518)"
+title:  "Anviz Pwn! How broken devices could be? (CVE-2019-12393/CVE-2019-12391/CVE-2019-12392/CVE-2019-12390/CVE-2019-12389/CVE-2019-12388/CVE-2019-12394/CVE-2019-12518,CVE-2020-19594)"
 date:   2019-11-28 01:01:00 +0100
 categories: multiple reverse
 ---
@@ -143,7 +143,7 @@ We also contacted shodan to help us map all the exposed devices on the Internet.
 
 A footnote on this CRC16 quest. We thought that the CRC16 was not standard since we used a python library and it didn't work. Turns out that it is indeed standard and there are a lot of implementations available with different polynomials. We were only stuck with one and didn't know. Thank you [@\_nunohumberto](https://twitter.com/_nunohumberto) for the heads up!
 
-## We need to go deeper! Exploiting the manager
+## We need to go deeper! Exploiting the manager (CVE-2020-19594))
 
 After these results, we contacted our national CSIRT authority to help us contacting those companies and coordinate a responsible disclosure, more on that below.
 
@@ -155,7 +155,7 @@ By waiting for the CrosscChex broadcast looking for new devices, a custom broadc
 
 A quick exploit was build to trigger the vulnerability and has we can see, we are running as the user that started the application. However, this user needs to have elevated privileges to run the application so it is easy to escalate from here.
 
-While looking at the network traffic we noticed a small connection to an "UPDATE" service in plain HTTP. Could it be? Does it have space for an evilgrade attack in 2019? Well, yes it does =).
+While looking at the network traffic we noticed a small connection to an "UPDATE" service in plain HTTP. Could it be? Does it have space for an evilgrade attack in 2019? Well, yes it does =). Edit (4/04/2021): this was later given the CVE-2020-19594.
 
 The upgrade requests a manifest file, passing as an argument the revision name, where it states the latest version and all the files that needs to download from the server to upgrade.
 
@@ -203,6 +203,8 @@ During this information gathering, we discovered a great number of exposed devic
 Since there was no response to almost four tries, and since we got the all-clear from CNCS, we decided to publish the results. Meanwhile, the vendor decided to publish an article stating that their new version is GDPR compliant and such, but ignored us anyway. Since we did not send technical details about the vulnerabilities we don't know what fixes were made.
 
 Again, this research is released to the public but use it wisely, don't do warm to other people and be conscious about every command you type!
+
+Edit (04/04/2021 Added CVE entry for evilgrade CVE-2020-19594)
 
 ## Conclusion
 

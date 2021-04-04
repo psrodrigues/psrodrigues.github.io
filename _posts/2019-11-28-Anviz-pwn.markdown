@@ -143,7 +143,7 @@ We also contacted shodan to help us map all the exposed devices on the Internet.
 
 A footnote on this CRC16 quest. We thought that the CRC16 was not standard since we used a python library and it didn't work. Turns out that it is indeed standard and there are a lot of implementations available with different polynomials. We were only stuck with one and didn't know. Thank you [@\_nunohumberto](https://twitter.com/_nunohumberto) for the heads up!
 
-## We need to go deeper! Exploiting the manager (CVE-2020-19594))
+## We need to go deeper! Exploiting the manager (CVE-2020-19594)
 
 After these results, we contacted our national CSIRT authority to help us contacting those companies and coordinate a responsible disclosure, more on that below.
 

@@ -1,11 +1,11 @@
 ---
 layout: post
-title:  "Unauthenticated Remote Code Execution/DoS on CoreFTP Server - CVE Pending"
+title:  "Unauthenticated Remote Code Execution/DoS on CoreFTP Server - CVE-2020-19596/CVE-2020-19595"
 date:   2020-08-16 01:01:00 +0100
 categories: binary reverse exploitation
 ---
 
-# Unauthenticated Remote Code Execution/DoS on CoreFTP Server - CVE Pending
+# Unauthenticated Remote Code Execution/DoS on CoreFTP Server - CVE-2020-19596/CVE-2020-19595
 
 Well hello there, hope everyone is doing well on this lockdown. As with many people, I start learning some new tricks, and I went old school on this one. Due to the excess time, we had to play with another thing I started looking again for old school exploits such as Buffer Overflows. Well, it didn't take long to find one.
 
@@ -24,7 +24,7 @@ I quickly created an environment with the service running on a Windows XP SP3 Bu
 
 ![debuggerattached]({{ "images/coreftprce/image5.png" | absolute_url}})
 
-## Exploiting it
+## Exploiting it (CVE-2020-19596)
 
 If you read the tutorial link (and I think you should if it's the first time you reading something like this), you should know that the next step is to determine the offset to rewrite the EIP. You can either do it by trial and error or be intelligent and use something like the pattern generator tool from the Metasploit framework. With that, we can see that the EIP will be overwritten after ``198 bytes``, which means that we need to write 198 bytes before rewriting it.
 
@@ -54,7 +54,7 @@ Yes, I pasted an image with the code because it could trigger Antivirus Agents s
 
 ![exploitcode]({{ "images/coreftprce/image10.png" | absolute_url}})
 
-There are also other versions vulnerable to this, but after version 2.1 of the CoreFTP Server, the buffer started converting to UTF-8, and we need to perform [Venetian method](https://img2.helpnetsecurity.com/dl/articles/unicodebo.pdf) to exploit it. I was not successful in doing that, so the last that we can achieve is Denial of Service (DoS). To do this, we send garbage to the buffer and crash the service. Meh, not that good but could be helpful in some situations. Maybe someone that knows more than what I do can help and exploit this.
+There are also other versions vulnerable to this, but after version 2.1 of the CoreFTP Server, the buffer started converting to UTF-8, and we need to perform [Venetian method](https://img2.helpnetsecurity.com/dl/articles/unicodebo.pdf) to exploit it. I was not successful in doing that, so the last that we can achieve is Denial of Service (DoS, CVE-2020-19595). To do this, we send garbage to the buffer and crash the service. Meh, not that good but could be helpful in some situations. Maybe someone that knows more than what I do can help and exploit this.
 
 There is the problem of portability of the exploit. I did this on a Windows XP SP3 machine (except the detection of security extensions, that I did on the Windows 10 Machine) so I won't be bothered with ASLR and DEP modes. Since the code of the program holds bad chars, such as the NULL byte (0x00) we can't use it to steal an instruction to jump to our shellcode. Otherwise, the exploit would work on all OSs. Therefore we needed to use some of the imported DLLs present to reuse the instruction, and then jump to our shellcode. One interesting thing to work on is to try to craft something that would bypass the authentication, jump the verification of the password and give access to files. Don't know if it is possible but I wonder. Also, this exploit **only works if the SSH key is enabled**. You don't need a user registered with it, but the server should accept it. The problem relies on the most robust configuration (using SSH keys to authenticate users) even if there is none configured.
 
@@ -70,5 +70,6 @@ This vulnerability follows the responsible disclosure standard. At first, the ve
 * 26/06/2020 - Vulnerability fix tested, patch confirmed
 * 27/07/2020 - Official date of release
 * 16/08/2020 - Real date of release
-* 23/08/2020 - Grammer fixes, thanks to @jpdias =)  
+* 23/08/2020 - Grammer fixes, thanks to @jpdias =) 
+* 04/04/2020 - Added CVE-2020-19596 and CVE-2020-19595  
 

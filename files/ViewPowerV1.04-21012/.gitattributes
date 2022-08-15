@@ -1,0 +1,4 @@
+installViewPowerHTML[[:space:]]Windows_XP_2003_2008.zip filter=lfs diff=lfs merge=lfs -text
+installViewPowerHTML[[:space:]]Windows.zip filter=lfs diff=lfs merge=lfs -text
+installViewPowerPro_Windows.zip filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text

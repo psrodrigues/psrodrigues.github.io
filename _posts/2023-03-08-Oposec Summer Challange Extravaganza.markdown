@@ -567,7 +567,7 @@ Perhaps you can see `Bloodhound` as a good way to start cleaning your Active Dir
 
 But I digress. Running ADExplorer we can examine almost all accounts. Being careful looking up all accounts we notice a small comment in the Active Directory Description:
 
-![AD Explorer Password Leak]({{ "images/summerchal22/adeplorerdescription.png" | absolute_url}})
+![AD Explorer Password Leak]({{ "images/summerchal22/adexplorerdescription.png" | absolute_url}})
 
 And we got a new account compromised! We could take `crowbar` or even `crackmapexec` to scan the whole environment for RDP access and lo and behold we get access to the LAB-WIN7 machine.
 

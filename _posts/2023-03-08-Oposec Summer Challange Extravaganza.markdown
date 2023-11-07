@@ -563,7 +563,6 @@ Don't take me wrong, BloodHound is a very good tool to detect paths of privilege
 
 Perhaps you can see `Bloodhound` as a good way to start cleaning your Active Directory and later go deep with `ADExplorer` to create additional rules to clean the environment.
 
-.>>>> TODO FROM HERE
 
 But I digress. Running ADExplorer we can examine almost all accounts. Being careful looking up all accounts we notice a small comment in the Active Directory Description:
 

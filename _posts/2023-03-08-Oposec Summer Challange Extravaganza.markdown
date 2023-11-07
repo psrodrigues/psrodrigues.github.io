@@ -1,16 +1,16 @@
 ---
 layout: post
-title:  "2023 - Oposec Summer Challange Extravaganza"
+title:  "2023 - 0xOPOSEC Summer Challange Extravaganza"
 date:   2023-11-07 01:01:00 +0100
 categories: CTF
 ---
 
 
-# Oposec Summer Challange Extravaganza
+# 0xOPOSEC Summer Challange Extravaganza
 
-The last summer, in collaboration with the [Oposec Metup](https://www.meetup.com/en/0xoposec/), we developed a CTF to be solved during the summer. The description of the environment and all the preparation is going to be shown in this article. 
+The last summer, in collaboration with the [0xOPOSEC Metup](https://www.meetup.com/en/0xoposec/), we developed a CTF to be solved during the summer. The description of the environment and all the preparation is going to be shown in this article. 
 
-Oposec is a meetup around Oporto to gather and share security-related knowledge. It is a great experience to be on the lookout for new vectors and threats and to deepen the knowledge of the area. 
+0xOPOSEC is a meetup around Oporto to gather and share security-related knowledge. It is a great experience to be on the lookout for new vectors and threats and to deepen the knowledge of the area. 
 
 With that in mind, it was proposed to create an environment where participants could enter and break the security of such machines at will to solve the challenges that they were presented with.
 
